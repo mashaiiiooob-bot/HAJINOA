@@ -1,0 +1,36 @@
+/* ==========================================================================
+   Header — slim contextual top bar (mobile brand strip).
+   Desktop navigation lives in sidebar.css.
+   ========================================================================== */
+#app-header {
+  position: sticky; top: 0; z-index: var(--z-header);
+  height: var(--header-h);
+  background: rgba(7, 7, 10, 0.78);
+  backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
+  border-bottom: 1px solid var(--c-hairline);
+  display: none;
+}
+.header-inner {
+  height: 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-5);
+}
+.brand { display: flex; align-items: center; gap: var(--sp-2); }
+.brand-icon { font-size: 1.4rem; }
+.brand-name {
+  font-weight: 800; font-size: var(--fs-base);
+  background: var(--grad-gold);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.header-user { display: flex; align-items: center; gap: var(--sp-3); }
+.coin-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-full); padding: 6px 14px; font-weight: 700; color: var(--c-gold-light);
+  font-size: var(--fs-sm);
+}
+.avatar-sm { width: 40px; height: 40px; font-size: var(--fs-base); }
+
+@media (max-width: 880px) {
+  #app-header.visible { display: block; }
+}

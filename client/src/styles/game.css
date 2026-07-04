@@ -1,0 +1,216 @@
+/* ==========================================================================
+   Game arena
+   ========================================================================== */
+.arena-wrap {
+  display: flex; justify-content: center; padding-block: var(--sp-6);
+  min-height: calc(100vh - var(--header-h) - var(--sp-8));
+  align-items: center;
+}
+
+.arena-idle {
+  width: 100%; max-width: 460px; text-align: center;
+  padding: var(--sp-7) var(--sp-6); display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+}
+.arena-idle h2 { font-size: var(--fs-xl); }
+.arena-idle .empty-icon { font-size: 3.4rem; filter: drop-shadow(0 0 18px var(--c-purple-glow)); }
+
+.loader-ring {
+  width: 56px; height: 56px; border: 3px solid var(--c-surface-hover); border-top-color: var(--c-gold);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Match card ---- */
+.match-card {
+  width: 100%; max-width: 560px; padding: var(--sp-6); text-align: center;
+  position: relative; overflow: hidden;
+  transition: box-shadow var(--dur-base) var(--ease);
+}
+.match-card.your-turn { box-shadow: var(--shadow-purple-glow), var(--shadow-2); }
+
+.match-players { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); gap: var(--sp-3); }
+.match-player { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); flex: 1; }
+.match-player .avatar { width: 60px; height: 60px; font-size: var(--fs-xl); transition: transform var(--dur-base) var(--ease-spring), box-shadow var(--dur-base) var(--ease); }
+.match-player.active .avatar { box-shadow: 0 0 0 3px var(--c-purple), var(--shadow-purple-glow); transform: scale(1.06); }
+.match-score {
+  font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 700; color: var(--c-gold-light);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.match-score.score-bump { animation: score-bump var(--dur-slow) var(--ease-spring); }
+@keyframes score-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.45); color: var(--c-gold-light); }
+  100% { transform: scale(1); }
+}
+.match-vs { color: var(--c-text-faint); font-weight: 700; font-family: var(--font-display); flex-shrink: 0; }
+
+/* ---- Turn / urgency indicator ---- */
+.turn-banner {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 18px; border-radius: var(--r-full);
+  background: var(--c-purple-glow); color: var(--c-purple-light);
+  font-weight: 700; font-size: var(--fs-sm); margin-bottom: var(--sp-4);
+}
+.turn-banner .pulse-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--c-purple-light); position: relative;
+}
+.turn-banner.urgent { background: var(--c-gold-glow); color: var(--c-gold-light); animation: urgency-flash 1s ease-in-out infinite; }
+@keyframes urgency-flash {
+  0%, 100% { box-shadow: 0 0 0 0 var(--c-gold-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+.match-status { color: var(--c-text-muted); margin-bottom: var(--sp-5); min-height: 1.4em; font-size: var(--fs-sm); }
+
+.hand-choices { display: flex; gap: var(--sp-4); justify-content: center; }
+.hand-btn {
+  flex: 1; max-width: 190px; position: relative;
+  padding: var(--sp-5); font-size: var(--fs-lg); font-weight: 700;
+  background: var(--c-bg-elevated); border: 1px solid var(--c-border); border-radius: var(--r-lg);
+  transition: transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.hand-btn:hover:not(:disabled) { border-color: var(--c-gold); transform: translateY(-4px); background: var(--c-surface-hover); box-shadow: var(--shadow-gold-glow); }
+.hand-btn:disabled { opacity: 0.45; }
+.hand-btn.chosen { border-color: var(--c-purple); box-shadow: var(--shadow-purple-glow); transform: translateY(-2px) scale(1.03); }
+.hand-btn.correct { border-color: var(--c-success); box-shadow: 0 0 0 1px var(--c-success), 0 8px 26px var(--c-success-glow); animation: correct-pop var(--dur-slow) var(--ease-spring); }
+.hand-btn.wrong { animation: shake 420ms var(--ease); border-color: var(--c-danger); }
+@keyframes correct-pop {
+  0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1.03); }
+}
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+/* ---- Countdown overlay (queue → match start) ---- */
+.countdown-num {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: var(--fs-4xl);
+  background: var(--grad-arcane); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: countdown-pop 1s var(--ease-out-expo);
+}
+@keyframes countdown-pop {
+  0% { transform: scale(1.6); opacity: 0; }
+  60% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- Result screen ---- */
+.result-burst { position: relative; }
+.result-icon { font-size: 3.6rem; }
+.result-icon.win { filter: drop-shadow(0 0 24px var(--c-gold-glow)); animation: float-y 3s ease-in-out infinite; }
+.gain-row { display: flex; gap: var(--sp-5); justify-content: center; margin-bottom: var(--sp-4); }
+.gain-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 18px; border-radius: var(--r-md); background: var(--c-bg-elevated); border: 1px solid var(--c-border);
+  animation: gain-rise var(--dur-slower) var(--ease-out-expo);
+}
+@keyframes gain-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.gain-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-lg); }
+.gain-value.gold { color: var(--c-gold-light); }
+.gain-value.purple { color: var(--c-purple-light); }
+.gain-label { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+
+.celebrate-particle {
+  position: absolute; bottom: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--c-gold-light);
+  animation: celebrate-burst 1s var(--ease-out-expo) forwards;
+}
+@keyframes celebrate-burst {
+  to { transform: translate(var(--bx), var(--by)); opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  .hand-choices { gap: var(--sp-3); }
+  .match-score { font-size: var(--fs-xl); }
+}
+
+/* ---- Idle hero ---- */
+.arena-hero { overflow: hidden; }
+.arena-hero-coin { width: 64px; height: 64px; margin-bottom: var(--sp-2); }
+.arena-hero-coin .coin-face { font-size: 30px; }
+
+/* ---- Searching radar ---- */
+.radar-scan { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+.radar-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid var(--c-gold-glow);
+  animation: radar-pulse 2.4s var(--ease-out-expo) infinite;
+}
+.radar-ring:nth-child(2) { animation-delay: 0.8s; }
+.radar-ring:nth-child(3) { animation-delay: 1.6s; }
+@keyframes radar-pulse {
+  0% { transform: scale(0.3); opacity: 0.9; border-color: var(--c-gold); }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.radar-core { font-size: 2rem; filter: drop-shadow(0 0 14px var(--c-gold-glow)); animation: float-y 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .radar-ring { animation: none; opacity: 0.4; }
+}
+
+/* ---- Hand reveal stage: the buttons themselves double as animated hand props ---- */
+.hand-btn { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
+.hand-reveal-icon {
+  font-size: 2.6rem; line-height: 1;
+  transition: transform var(--dur-base) var(--ease-spring), filter var(--dur-base) var(--ease);
+}
+.hand-btn-label { font-size: var(--fs-sm); }
+.hand-btn:hover:not(:disabled) .hand-reveal-icon { transform: translateY(-3px) scale(1.08); }
+
+.hand-btn.waiting-fist .hand-reveal-icon { animation: fist-knock 0.7s var(--ease-spring) infinite alternate; }
+@keyframes fist-knock {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(3px) rotate(-4deg); }
+}
+
+.hand-btn.revealed-hit .hand-reveal-icon {
+  animation: coin-reveal-pop var(--dur-slower) var(--ease-spring);
+  filter: drop-shadow(0 0 20px var(--c-gold-glow));
+}
+.hand-btn.revealed-miss .hand-reveal-icon { opacity: 0.5; filter: grayscale(0.6); }
+@keyframes coin-reveal-pop {
+  0% { transform: scale(0.4) rotateY(0deg); opacity: 0; }
+  55% { transform: scale(1.35) rotateY(360deg); opacity: 1; }
+  100% { transform: scale(1) rotateY(360deg); opacity: 1; }
+}
+
+/* ---- Full-screen feedback flash — brief, non-blocking, respects reduced motion ---- */
+.screen-flash {
+  position: fixed; inset: 0; z-index: 2000; pointer-events: none;
+}
+.screen-flash-win {
+  background: radial-gradient(circle at 50% 40%, var(--c-gold-glow), transparent 70%);
+  animation: flash-win 900ms var(--ease-out-expo) forwards;
+}
+.screen-flash-hit {
+  background: radial-gradient(circle at 50% 50%, var(--c-success-glow), transparent 65%);
+  animation: flash-quick 500ms var(--ease) forwards;
+}
+.screen-flash-miss {
+  background: radial-gradient(circle at 50% 50%, var(--c-danger-glow), transparent 65%);
+  animation: flash-quick 500ms var(--ease) forwards;
+}
+@keyframes flash-win { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes flash-quick { 0% { opacity: 0; } 25% { opacity: 0.8; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .screen-flash { display: none; }
+}
+
+/* ---- Mode picker (idle screen) ---- */
+.mode-picker { display: flex; gap: var(--sp-3); width: 100%; margin: var(--sp-2) 0; }
+.mode-pick-card {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--sp-4) var(--sp-3); border-radius: var(--r-lg);
+  background: var(--c-bg-elevated); border: 1px solid var(--c-border);
+  transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease);
+}
+.mode-pick-card:hover { transform: translateY(-3px); border-color: var(--c-gold); }
+.mode-pick-card.active { border-color: var(--c-gold); box-shadow: var(--shadow-gold-glow); background: var(--c-surface-hover); }
+.mode-pick-icon { font-size: 1.8rem; }
+.mode-pick-name { font-weight: 700; font-size: var(--fs-sm); }
+.mode-pick-desc { font-size: var(--fs-2xs); color: var(--c-text-faint); text-align: center; }

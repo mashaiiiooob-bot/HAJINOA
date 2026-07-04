@@ -1,0 +1,62 @@
+name: dast-ya-khali
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dast_ya_khali
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set a strong password}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    # No host port mapping: Postgres should only be reachable from other
+    # containers on the compose network, never directly from the internet.
+    # For local debugging, use `docker compose exec db psql ...` instead.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:?set a strong password}@db:5432/dast_ya_khali
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set a strong secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set a strong secret}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    # No host port mapping in production: traffic must go through `edge`
+    # (TLS, security headers, rate-limit-friendly single origin). Expose
+    # 4000 only in a local-dev override file if you need direct access.
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - server
+
+  edge:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/edge.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - server
+      - client
+
+volumes:
+  db_data:

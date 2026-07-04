@@ -1,0 +1,177 @@
+/* ==========================================================================
+   Dashboard
+   ========================================================================== */
+.page-pad { padding-block: var(--sp-6) var(--sp-8); }
+
+/* ---- Hero: animated competitive-intelligence arena scene ---- */
+.hero-scene {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-xl);
+  padding: var(--sp-7) var(--sp-7);
+  margin-bottom: var(--sp-5);
+  min-height: 300px;
+  display: flex; align-items: center;
+  background: radial-gradient(ellipse 700px 420px at 75% 30%, rgba(139,92,246,0.16), transparent 65%), linear-gradient(155deg, var(--c-surface-2), var(--c-surface));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-3);
+}
+
+.hero-neural {
+  position: absolute; inset: 0; z-index: 0; opacity: 0.85;
+}
+.hero-neural svg { width: 100%; height: 100%; }
+.neural-line {
+  stroke: url(#neuralGrad);
+  stroke-width: 1;
+  fill: none;
+  opacity: 0.45;
+  animation: neural-pulse 5s ease-in-out infinite;
+}
+.neural-node {
+  fill: var(--c-purple-light);
+  animation: node-glow 3.4s ease-in-out infinite;
+}
+@keyframes neural-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+}
+@keyframes node-glow {
+  0%, 100% { opacity: 0.4; r: 2; }
+  50% { opacity: 1; r: 3.4; }
+}
+
+.hero-particle-field { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.hero-particle {
+  position: absolute; bottom: -10px; border-radius: 50%;
+  background: radial-gradient(circle, var(--c-gold-light), var(--c-purple-light) 140%);
+  opacity: 0;
+  animation: particle-rise linear infinite;
+}
+@keyframes particle-rise {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-260px) scale(1.1); }
+}
+
+.hero-brain {
+  position: absolute; inset-inline-end: 6%; top: 50%; transform: translateY(-50%);
+  width: 220px; height: 220px; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-brain-glow {
+  position: absolute; inset: -30%; border-radius: 50%;
+  background: radial-gradient(circle, var(--c-purple-glow), transparent 70%);
+  animation: brain-breathe 4.5s ease-in-out infinite;
+}
+@keyframes brain-breathe {
+  0%, 100% { transform: scale(0.92); opacity: 0.7; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.hero-brain-icon {
+  position: relative; width: 108px; height: 108px;
+  filter: drop-shadow(0 0 18px var(--c-purple-glow));
+  animation: float-y 6s ease-in-out infinite;
+}
+
+.hero-content { position: relative; z-index: 2; max-width: 620px; }
+.eyebrow {
+  font-family: var(--font-display); color: var(--c-purple-light); font-size: var(--fs-2xs); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: var(--sp-2);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.hero-scene h1 { font-size: var(--fs-3xl); margin-bottom: var(--sp-2); line-height: 1.25; }
+.hero-sub { color: var(--c-text-muted); margin-bottom: var(--sp-5); font-size: var(--fs-base); }
+.hero-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+.hero-stats { display: flex; gap: var(--sp-5); margin-top: var(--sp-5); }
+.hero-stat { display: flex; flex-direction: column; }
+.hero-stat-value { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; color: var(--c-gold-light); }
+.hero-stat-label { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+
+/* ---- Widget cards ---- */
+.widget-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.widget-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-1); border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease);
+}
+.widget-row:hover { background: var(--c-surface-hover); }
+
+.challenge-row { justify-content: space-between; }
+.challenge-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.challenge-name { font-weight: 600; font-size: var(--fs-sm); }
+.challenge-progress-track { height: 6px; border-radius: var(--r-full); background: var(--c-bg-elevated); overflow: hidden; margin-top: 4px; }
+.challenge-progress-fill { height: 100%; border-radius: var(--r-full); background: var(--grad-gold); transition: width var(--dur-slower) var(--ease-out-expo); }
+.challenge-reward { font-size: var(--fs-xs); color: var(--c-gold-light); font-weight: 700; white-space: nowrap; }
+
+.friend-row .avatar { width: 36px; height: 36px; font-size: var(--fs-sm); }
+.friend-status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.friend-status-online { background: var(--c-success); box-shadow: 0 0 8px var(--c-success-glow); }
+.friend-status-ingame { background: var(--c-gold); box-shadow: 0 0 8px var(--c-gold-glow); }
+.friend-name { font-weight: 600; font-size: var(--fs-sm); flex: 1; }
+.friend-activity { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+
+.activity-row { align-items: flex-start; }
+.activity-icon {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--c-surface-hover); font-size: var(--fs-sm);
+}
+.activity-text { font-size: var(--fs-sm); color: var(--c-text-muted); }
+.activity-text strong { color: var(--c-text); font-weight: 700; }
+.activity-time { font-size: var(--fs-2xs); color: var(--c-text-faint); white-space: nowrap; margin-inline-start: auto; }
+
+.season-progress-ring-wrap { display: flex; align-items: center; gap: var(--sp-4); }
+.season-ring { width: 76px; height: 76px; flex-shrink: 0; }
+.season-ring circle { transition: stroke-dashoffset var(--dur-slower) var(--ease-out-expo); }
+.season-info { display: flex; flex-direction: column; gap: 2px; }
+.season-tier { font-weight: 800; font-size: var(--fs-lg); }
+.season-tier-sub { font-size: var(--fs-xs); color: var(--c-text-muted); }
+
+.tournament-card {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-3); border-radius: var(--r-md); background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+}
+.tournament-name { font-weight: 700; font-size: var(--fs-sm); }
+.tournament-meta { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+.tournament-countdown { font-family: var(--font-display); font-weight: 700; color: var(--c-purple-light); font-size: var(--fs-sm); }
+
+.mode-tile {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-4); border-radius: var(--r-md);
+  background: var(--c-bg-elevated); border: 1px solid var(--c-border);
+  transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
+}
+.mode-tile:hover { border-color: var(--c-border-strong); transform: translateY(-2px); }
+.mode-tile-icon { font-size: 1.4rem; }
+.mode-tile-name { font-weight: 700; font-size: var(--fs-sm); }
+.mode-tile-desc { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+
+/* ---- Leaderboard preview (existing) ---- */
+.leaderboard-preview { padding: var(--sp-5); }
+.lb-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.lb-row {
+  display: grid; grid-template-columns: 28px 36px 1fr auto auto; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.lb-row:hover { background: var(--c-surface-hover); transform: translateX(-2px); }
+.lb-row-self { background: var(--c-gold-glow); border: 1px solid var(--c-border-strong); }
+.leaderboard-more { display: flex; justify-content: center; padding: var(--sp-4); }
+.lb-rank { color: var(--c-text-muted); font-weight: 700; text-align: center; font-family: var(--font-display); }
+.lb-rank-top { color: var(--c-gold); }
+.lb-name { font-weight: 600; }
+.lb-points { color: var(--c-gold-light); font-weight: 700; font-family: var(--font-display); }
+
+@media (max-width: 640px) {
+  .hero-scene { padding: var(--sp-5); min-height: 260px; }
+  .hero-scene h1 { font-size: var(--fs-2xl); }
+  .hero-brain { width: 130px; height: 130px; opacity: 0.4; }
+  .hero-brain-icon { width: 70px; height: 70px; }
+  .hero-stats { gap: var(--sp-4); }
+  .lb-row { grid-template-columns: 24px 32px 1fr auto; }
+  .lb-points { display: none; }
+  .mode-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Design Tokens — دست یا خالی
+   Dark graphite / champagne-gold / arcane-violet competitive system.
+   Every component file should reference these variables, never raw hex.
+   ========================================================================== */
+:root {
+  /* ---- Core surfaces ---- */
+  --c-bg: #07070a;
+  --c-bg-elevated: #111114;
+  --c-surface: #16161a;
+  --c-surface-hover: #1f1f25;
+  --c-surface-2: #1c1c21;
+  --c-border: rgba(212, 175, 55, 0.14);
+  --c-border-strong: rgba(212, 175, 55, 0.34);
+  --c-hairline: rgba(255, 255, 255, 0.06);
+
+  /* ---- Gold (primary / currency / victory) ---- */
+  --c-gold: #d4af37;
+  --c-gold-light: #f3dd96;
+  --c-gold-dim: #a6822c;
+  --c-gold-glow: rgba(212, 175, 55, 0.24);
+  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+
+  /* ---- Violet (energy / ranked / intelligence) ---- */
+  --c-purple: #8b5cf6;
+  --c-purple-light: #c4b1ff;
+  --c-purple-dim: #4c2f96;
+  --c-purple-glow: rgba(139, 92, 246, 0.28);
+  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
+  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, var(--c-purple-light) 50%, var(--c-purple) 100%);
+
+  /* ---- Text ---- */
+  --c-text: #f6f4ef;
+  --c-text-muted: #a8a5a3;
+  --c-text-faint: #6e6b6f;
+
+  /* ---- Semantic ---- */
+  --c-success: #3ecf8e;
+  --c-success-glow: rgba(62, 207, 142, 0.22);
+  --c-danger: #f0555c;
+  --c-danger-glow: rgba(240, 85, 92, 0.22);
+  --c-info: #5b9bd5;
+
+  /* ---- Rarity scale (achievements / badges) ---- */
+  --c-rarity-common: #8b8d94;
+  --c-rarity-rare: #5b9bd5;
+  --c-rarity-epic: #8b5cf6;
+  --c-rarity-legendary: #d4af37;
+
+  /* ---- Ember (signature "chance/fate" accent — coin-flip, streaks, celebration) ---- */
+  --c-ember: #ff9a4d;
+  --c-ember-light: #ffc98a;
+  --c-ember-glow: rgba(255, 154, 77, 0.28);
+  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 60%, #d9640f);
+  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+
+  /* ---- Typography ---- */
+  --font-fa: 'Vazirmatn', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Vazirmatn', system-ui, sans-serif;
+  --fs-2xs: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;
+  --fs-3xl: 2.75rem;
+  --fs-4xl: 3.5rem;
+
+  /* ---- Spacing scale (4px base) ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9: 96px;
+
+  /* ---- Radii ---- */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-full: 999px;
+
+  /* ---- Elevation ---- */
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(139, 92, 246, 0.34), 0 8px 28px var(--c-purple-glow);
+  --shadow-inset-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-ember-glow: 0 0 0 1px rgba(255, 154, 77, 0.3), 0 8px 28px var(--c-ember-glow);
+  --shadow-float: 0 30px 80px -20px rgba(0, 0, 0, 0.65);
+
+  /* ---- Glass ---- */
+  --glass-bg: linear-gradient(180deg, rgba(22, 22, 26, 0.78), rgba(14, 14, 17, 0.86));
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --blur-sm: blur(8px);
+  --blur-md: blur(16px);
+  --blur-lg: blur(28px);
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 450ms;
+  --dur-slower: 800ms;
+
+  /* ---- Layout ---- */
+  --header-h: 64px;
+  --sidebar-w: 252px;
+  --sidebar-w-collapsed: 80px;
+  --container-max: 1440px;
+
+  /* ---- Z-index scale ---- */
+  --z-bg: 0;
+  --z-base: 1;
+  --z-sidebar: 700;
+  --z-header: 800;
+  --z-overlay: 900;
+  --z-modal: 950;
+  --z-toast: 1000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

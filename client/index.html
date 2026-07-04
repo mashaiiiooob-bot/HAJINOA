@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="دست یا خالی — پلتفرم بازی آنلاین لوکس" />
+  <meta name="color-scheme" content="dark" />
+  <title>دست یا خالی — پلتفرم بازی آنلاین</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/src/styles/tokens.css" />
+  <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/brand.css" />
+  <link rel="stylesheet" href="/src/styles/effects.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
+  <link rel="stylesheet" href="/src/styles/overlays.css" />
+  <link rel="stylesheet" href="/src/styles/sidebar.css" />
+  <link rel="stylesheet" href="/src/styles/header.css" />
+  <link rel="stylesheet" href="/src/styles/auth.css" />
+  <link rel="stylesheet" href="/src/styles/dashboard.css" />
+  <link rel="stylesheet" href="/src/styles/game.css" />
+  <link rel="stylesheet" href="/src/styles/tournaments.css" />
+  <link rel="stylesheet" href="/src/styles/marketplace.css" />
+  <link rel="stylesheet" href="/src/styles/social.css" />
+  <link rel="stylesheet" href="/src/styles/admin.css" />
+  <link rel="stylesheet" href="/src/styles/profile.css" />
+</head>
+<body>
+  <div id="loading-screen" aria-hidden="true">
+    <div class="loader-ring"></div>
+  </div>
+
+  <div class="app-atmosphere" aria-hidden="true">
+    <div class="orb-field">
+      <span class="orb orb-gold"></span>
+      <span class="orb orb-purple"></span>
+      <span class="orb orb-purple-2"></span>
+    </div>
+  </div>
+
+  <a class="sr-only" href="#app-root">رفتن به محتوای اصلی</a>
+
+  <div class="app-shell">
+    <aside id="app-sidebar" aria-label="نوار کناری ناوبری"></aside>
+    <div class="app-main">
+      <header id="app-header"></header>
+      <main id="app-root"></main>
+    </div>
+  </div>
+
+  <div id="toast-region" role="status" aria-live="polite"></div>
+
+  <!-- Runtime config — overridden per-environment by the deploy pipeline (see /client/public/env.js) -->
+  <script>
+    window.__ENV__ = window.__ENV__ || { API_URL: 'http://localhost:4000/api', SOCKET_URL: 'http://localhost:4000' };
+  </script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

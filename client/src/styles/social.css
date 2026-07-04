@@ -1,0 +1,106 @@
+/* ==========================================================================
+   Social system — notifications, clans, friends, chat
+   ========================================================================== */
+
+/* ---- Icon button + badge (shared by header/sidebar bell) ---- */
+.icon-btn {
+  position: relative;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-full); background: var(--c-surface); border: 1px solid var(--c-border);
+  font-size: 1.1rem; color: var(--c-text);
+  transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.icon-btn:hover { border-color: var(--c-gold); transform: translateY(-1px); }
+.sidebar-notif-btn { align-self: center; margin-bottom: var(--sp-2); }
+
+.notif-badge {
+  position: absolute; top: -4px; left: -4px;
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--r-full);
+  background: var(--c-danger); color: #fff; font-size: 0.65rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.notif-badge.hidden { display: none; }
+
+/* ---- Notification dropdown panel ---- */
+.notif-panel {
+  position: fixed; z-index: var(--z-modal, 200);
+  width: 340px; max-height: 440px; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--c-bg-elevated); border: 1px solid var(--c-border-strong); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg, 0 20px 50px rgba(0,0,0,0.5));
+  animation: notif-pop 0.18s var(--ease);
+}
+@keyframes notif-pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.notif-panel-header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-border);
+}
+.notif-panel-header h3 { font-size: var(--fs-sm); }
+#notif-panel-body { overflow-y: auto; }
+.notif-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--sp-6) var(--sp-4); color: var(--c-text-faint); }
+.notif-list { display: flex; flex-direction: column; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: var(--sp-2); width: 100%; text-align: right;
+  padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-hairline);
+  transition: background var(--dur-fast) var(--ease);
+}
+.notif-item:hover { background: var(--c-surface); }
+.notif-item.unread { background: rgba(139,92,246,0.06); }
+.notif-icon { font-size: 1.1rem; }
+.notif-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.notif-text { font-size: var(--fs-sm); }
+.notif-time { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-purple); margin-top: 4px; flex-shrink: 0; }
+
+/* ---- Clan profile ---- */
+.clan-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-md); }
+.clan-tag { color: var(--c-gold-light); font-weight: 700; font-size: 0.85em; }
+.clan-header-top { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
+.clan-header-top .clan-avatar { width: 64px; height: 64px; font-size: 2rem; flex-shrink: 0; }
+.clan-header-top > div:nth-child(2) { flex: 1; min-width: 200px; }
+.clan-level-bar { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); font-size: var(--fs-xs); color: var(--c-text-muted); }
+.clan-xp-track { flex: 1; height: 8px; border-radius: var(--r-full); background: var(--c-surface); overflow: hidden; }
+.clan-xp-fill { height: 100%; background: var(--grad-purple, var(--c-purple)); border-radius: var(--r-full); transition: width var(--dur-base) var(--ease); }
+.clan-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); margin-top: var(--sp-4); text-align: center; }
+.clan-stats-row strong { display: block; font-size: var(--fs-lg); font-family: var(--font-display); color: var(--c-gold-light); }
+.clan-stats-row span { font-size: var(--fs-2xs); color: var(--c-text-muted); }
+.clan-announcement { color: var(--c-text-muted); font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
+
+/* ---- Friend cards / presence ---- */
+.friend-card { position: relative; }
+.friend-status-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  background: var(--c-text-faint); box-shadow: 0 0 0 2px var(--c-bg-elevated);
+}
+.friend-status-dot.online { background: var(--c-success); box-shadow: 0 0 0 2px var(--c-bg-elevated), 0 0 8px var(--c-success); }
+.mp-item-card .friend-status-dot { position: absolute; top: var(--sp-3); left: var(--sp-3); }
+
+/* ---- Chat layout (global/clan/direct) ---- */
+.chat-layout { display: grid; grid-template-columns: 260px 1fr; gap: var(--sp-4); align-items: start; }
+.chat-main-card, .chat-conv-list, .chat-online-card { display: flex; flex-direction: column; }
+.chat-messages {
+  display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  height: 320px; padding: var(--sp-2) 0; scroll-behavior: smooth;
+}
+.chat-messages-lg { height: 420px; }
+.clan-chat-card .chat-messages { height: 260px; }
+.chat-msg {
+  max-width: 80%; padding: 8px 12px; border-radius: var(--r-md);
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  display: flex; flex-direction: column; gap: 2px; align-self: flex-start;
+}
+.chat-msg-mine { align-self: flex-end; background: var(--c-purple-glow); border-color: rgba(139,92,246,0.32); }
+.chat-msg-author { font-size: var(--fs-2xs); font-weight: 700; color: var(--c-gold-light); }
+.chat-msg-body { font-size: var(--fs-sm); word-break: break-word; }
+.chat-msg-time { font-size: 0.65rem; color: var(--c-text-faint); align-self: flex-end; }
+.chat-empty { color: var(--c-text-faint); font-size: var(--fs-sm); text-align: center; padding: var(--sp-5) 0; }
+.chat-typing { min-height: 18px; font-size: var(--fs-2xs); color: var(--c-text-faint); }
+.chat-input-row { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
+.chat-input-row .mp-search { flex: 1; }
+
+.chat-conv-item { cursor: pointer; }
+.chat-conv-item.active { background: var(--c-purple-glow); border-radius: var(--r-md); }
+
+@media (max-width: 880px) {
+  .chat-layout { grid-template-columns: 1fr; }
+  .notif-panel { width: calc(100vw - 24px); left: 12px !important; }
+}

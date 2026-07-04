@@ -1,0 +1,125 @@
+/* ==========================================================================
+   Effects — glass, glow, gradient borders, ripple, shimmer
+   Shared utility layer used across pages. Keep transforms/opacity only
+   so animations stay GPU-friendly.
+   ========================================================================== */
+
+/* ---- Glass panel ---- */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+}
+
+/* ---- Gradient border: padding-box/border-box trick, no extra markup ---- */
+.gradient-border {
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--c-surface), var(--c-surface)) padding-box,
+    var(--grad-arcane) border-box;
+}
+.gradient-border-gold {
+  background:
+    linear-gradient(var(--c-surface), var(--c-surface)) padding-box,
+    var(--grad-gold) border-box;
+}
+.gradient-border-purple {
+  background:
+    linear-gradient(var(--c-surface), var(--c-surface)) padding-box,
+    var(--grad-purple) border-box;
+}
+
+/* ---- Glow utilities ---- */
+.glow-gold { box-shadow: var(--shadow-gold-glow); }
+.glow-purple { box-shadow: var(--shadow-purple-glow); }
+
+.text-gradient-gold {
+  background: var(--grad-gold);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.text-gradient-arcane {
+  background: var(--grad-arcane);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ---- Hover lift (cards, tiles) ---- */
+.lift {
+  transition: transform var(--dur-base) var(--ease-out-expo), box-shadow var(--dur-base) var(--ease-out-expo), border-color var(--dur-base) var(--ease);
+}
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-3);
+}
+
+/* ---- Ripple (JS adds .ripple span on click — see utils/effects.js) ---- */
+.ripple-host { position: relative; overflow: hidden; }
+.ripple-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0);
+  animation: ripple-expand 600ms var(--ease-out-expo);
+  pointer-events: none;
+}
+@keyframes ripple-expand {
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+/* ---- Shimmer sweep (used on featured/premium surfaces) ---- */
+.shimmer-sweep { position: relative; overflow: hidden; }
+.shimmer-sweep::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.08) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: shimmer-sweep 5.5s ease-in-out infinite;
+}
+@keyframes shimmer-sweep {
+  0%, 30% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(120%); }
+}
+
+/* ---- Floating ambient blobs, used inside hero / panel scenes ---- */
+.float-slow { animation: float-y 7s ease-in-out infinite; }
+.float-slower { animation: float-y 11s ease-in-out infinite; }
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ---- Pulse ring (turn indicators, live dots) ---- */
+.pulse-ring { position: relative; }
+.pulse-ring::before {
+  content: '';
+  position: absolute; inset: -6px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  opacity: 0.6;
+  animation: pulse-ring 1.8s var(--ease-out-expo) infinite;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.92); opacity: 0.6; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.live-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c-success); position: relative;
+}
+.live-dot::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: var(--c-success); animation: live-ping 1.6s ease-out infinite;
+}
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* ---- Animated counter helper class (JS toggles content via rAF) ---- */
+.counter { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-sweep::after, .float-slow, .float-slower, .pulse-ring::before, .live-dot::after { animation: none; }
+}

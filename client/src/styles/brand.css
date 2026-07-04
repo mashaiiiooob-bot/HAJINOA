@@ -1,0 +1,169 @@
+/* ==========================================================================
+   Brand — دست یا خالی signature identity layer
+   A coin-flip / fate motif layered on top of the existing gold-violet system.
+   Purely additive: new classes only, nothing here overrides existing rules.
+   ========================================================================== */
+
+/* ---- Signature coin mark (replaces the plain glyph brand icon) ---- */
+.coin-mark {
+  position: relative;
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  perspective: 240px;
+}
+.coin-mark .coin-face {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset, 0 3px 10px rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  color: #16140a;
+  animation: coin-spin 5.5s cubic-bezier(0.45, 0, 0.15, 1) infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.coin-mark .coin-face svg { width: 18px; height: 18px; }
+.coin-mark .coin-face { font-size: 16px; line-height: 1; }
+.coin-mark::after {
+  content: '';
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c-gold-glow), transparent 70%);
+  opacity: 0.8;
+  animation: coin-halo 5.5s ease-in-out infinite;
+}
+@keyframes coin-spin {
+  0%, 8% { transform: rotateY(0deg); }
+  45%, 55% { transform: rotateY(180deg); }
+  92%, 100% { transform: rotateY(360deg); }
+}
+@keyframes coin-halo {
+  0%, 100% { opacity: 0.55; transform: scale(0.94); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coin-mark .coin-face, .coin-mark::after { animation: none; }
+}
+
+/* ---- Arcane seal — a slow-rotating geometric watermark for hero/flagship sections ---- */
+.arcane-seal {
+  position: absolute;
+  width: 620px; height: 620px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    repeating-conic-gradient(from 0deg, var(--c-gold-glow) 0deg 2deg, transparent 2deg 30deg),
+    radial-gradient(circle, transparent 55%, rgba(212,175,55,0.05) 56%, transparent 58%);
+  mask: radial-gradient(circle, black 60%, transparent 78%);
+  -webkit-mask: radial-gradient(circle, black 60%, transparent 78%);
+  animation: seal-rotate 90s linear infinite;
+  will-change: transform;
+}
+.arcane-seal--reverse { animation-direction: reverse; opacity: 0.3; }
+@keyframes seal-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arcane-seal { animation: none; }
+}
+
+/* ---- Spotlight cursor glow — a soft light that follows the pointer within `.spotlight` containers ---- */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(320px circle at var(--spot-x, 50%) var(--spot-y, 0%), rgba(212, 175, 55, 0.10), transparent 65%);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease);
+  pointer-events: none;
+}
+.spotlight:hover::before,
+.spotlight.spot-active::before { opacity: 1; }
+.spotlight > * { position: relative; z-index: 1; }
+
+/* ---- Magnetic hover — subtle pointer-attraction on primary CTAs ---- */
+.btn-magnetic { transition: transform 220ms var(--ease-spring), box-shadow var(--dur-base) var(--ease); }
+
+/* ---- Sweeping gradient border for flagship cards ---- */
+.card-arcane-sweep {
+  position: relative;
+  border: 1px solid transparent;
+  background: linear-gradient(155deg, var(--c-surface-2), var(--c-surface)) padding-box;
+  isolation: isolate;
+}
+.card-arcane-sweep::before {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--sweep-angle, 0deg), var(--c-gold), var(--c-purple), var(--c-ember), var(--c-gold));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: sweep-rotate 6s linear infinite;
+}
+@keyframes sweep-rotate {
+  from { --sweep-angle: 0deg; }
+  to { --sweep-angle: 360deg; }
+}
+@property --sweep-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-arcane-sweep::before { animation: none; }
+}
+
+/* ---- Floating micro-glyphs (coins/hands) drifting upward — used behind hero content ---- */
+.glyph-drift { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.glyph-drift span {
+  position: absolute;
+  bottom: -10%;
+  font-size: 1.1rem;
+  opacity: 0;
+  animation: glyph-rise linear infinite;
+  filter: drop-shadow(0 0 6px var(--c-gold-glow));
+}
+@keyframes glyph-rise {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.55; }
+  90% { opacity: 0.35; }
+  100% { transform: translateY(-120vh) rotate(180deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glyph-drift span { animation: none; opacity: 0; }
+}
+
+/* ---- Staggered entrance utility — apply to a list of siblings; each gets an increasing delay via inline --i ---- */
+.enter-stagger {
+  animation: enter-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes enter-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Shimmering text (used sparingly for flagship headings) ---- */
+.text-shimmer {
+  background: linear-gradient(100deg, var(--c-gold-light) 20%, var(--c-text) 40%, var(--c-gold-light) 60%);
+  background-size: 220% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmer-sweep 5s linear infinite;
+}
+@keyframes shimmer-sweep {
+  0% { background-position: 0% center; }
+  100% { background-position: -220% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer { animation: none; }
+}

@@ -1,0 +1,65 @@
+/* ==========================================================================
+   Marketplace
+   ========================================================================== */
+.mp-balance {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--r-full);
+  background: var(--c-gold-glow); color: var(--c-gold-light);
+  font-weight: 800; font-size: var(--fs-sm);
+  border: 1px solid rgba(212,175,55,0.3);
+}
+
+/* ---- Tabs ---- */
+.mp-tabs { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--c-border); }
+.mp-tab-btn {
+  padding: 10px 18px; font-size: var(--fs-sm); font-weight: 700; color: var(--c-text-muted);
+  border-bottom: 2px solid transparent; transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.mp-tab-btn:hover { color: var(--c-text); }
+.mp-tab-btn.active { color: var(--c-gold-light); border-color: var(--c-gold); }
+
+/* ---- Toolbar ---- */
+.mp-toolbar {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  gap: var(--sp-2); margin-bottom: var(--sp-4);
+}
+.mp-search, .mp-select, .mp-price-input {
+  background: var(--c-bg-elevated); border: 1px solid var(--c-border); border-radius: var(--r-md);
+  padding: 11px 14px; color: var(--c-text); font-size: var(--fs-sm);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.mp-search:focus, .mp-select:focus, .mp-price-input:focus {
+  border-color: var(--c-gold); box-shadow: 0 0 0 3px var(--c-gold-glow); outline: none;
+}
+.mp-search::placeholder, .mp-price-input::placeholder { color: var(--c-text-faint); }
+@media (max-width: 980px) {
+  .mp-toolbar { grid-template-columns: 1fr 1fr; }
+  .mp-search { grid-column: 1 / -1; }
+}
+
+/* ---- Item grid ---- */
+.mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-4); }
+.mp-item-card {
+  padding: var(--sp-4); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
+}
+.mp-item-rarity { align-self: flex-start; }
+.mp-item-icon { font-size: 2.4rem; margin: var(--sp-2) 0; }
+.mp-item-name { font-size: var(--fs-sm); font-weight: 700; }
+.mp-item-cat { font-size: var(--fs-2xs); color: var(--c-text-muted); }
+.mp-item-seller { font-size: var(--fs-2xs); color: var(--c-text-faint); }
+.mp-item-footer {
+  width: 100%; margin-top: var(--sp-2); display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
+}
+.mp-price { font-weight: 800; color: var(--c-gold-light); }
+
+/* ---- Pagination ---- */
+.mp-pagination { display: flex; align-items: center; justify-content: center; gap: var(--sp-4); margin-top: var(--sp-5); color: var(--c-text-muted); font-size: var(--fs-sm); }
+
+/* ---- My listings (inventory tab) ---- */
+.mp-my-listings { margin-top: var(--sp-5); }
+
+/* ---- Buy confirmation / sell form (inside Modal) ---- */
+.mp-confirm { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); text-align: center; }
+.mp-confirm .mp-item-icon { font-size: 3rem; }
+.mp-sell-form { display: flex; flex-direction: column; gap: var(--sp-3); align-items: center; text-align: center; }
+.mp-sell-form .field { width: 100%; }
