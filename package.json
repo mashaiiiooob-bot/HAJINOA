@@ -1,0 +1,8 @@
+{
+  "name": "hajinoa-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/inject-env.js"
+  }
+}
