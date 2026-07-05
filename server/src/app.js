@@ -13,13 +13,6 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
-import tournamentRoutes from './routes/tournamentRoutes.js';
-import marketplaceRoutes from './routes/marketplaceRoutes.js';
-import clanRoutes from './routes/clanRoutes.js';
-import friendRoutes from './routes/friendRoutes.js';
-import chatRoutes from './routes/chatRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 
 export function createApp() {
@@ -77,13 +70,6 @@ export function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/matches', matchRoutes);
-  app.use('/api/tournaments', tournamentRoutes);
-  app.use('/api/marketplace', marketplaceRoutes);
-  app.use('/api/clans', clanRoutes);
-  app.use('/api/friends', friendRoutes);
-  app.use('/api/chat', chatRoutes);
-  app.use('/api/notifications', notificationRoutes);
-  app.use('/api/admin', adminRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

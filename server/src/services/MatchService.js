@@ -99,46 +99,5 @@ export const MatchService = {
     });
   },
 
-  /**
-   * Resolves a Rock-Paper-Scissors round. Unlike playRound() (both players guess
-   * independently against a random hidden hand), RPS is a genuine head-to-head
-   * comparison — winner is decided by the two submitted moves alone, no server
-   * randomness needed for the outcome itself.
-   */
-  async playRpsRound({ matchId, picks, roundNumber }) {
-    const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
-    const entries = Object.entries(picks);
-    if (entries.some(([, move]) => !['rock', 'paper', 'scissors'].includes(move))) {
-      throw errors.validation('انتخاب نامعتبر است');
-    }
-
-    let roundWinnerId = null;
-    if (entries.length === 2) {
-      const [[u1, m1], [u2, m2]] = entries;
-      if (m1 !== m2) roundWinnerId = BEATS[m1] === m2 ? u1 : u2;
-    }
-
-    const results = Object.fromEntries(
-      entries.map(([userId]) => [userId, roundWinnerId === null ? 'draw' : userId === roundWinnerId ? 'win' : 'lose'])
-    );
-
-    await query(
-      `INSERT INTO match_rounds (match_id, round_number, moves, round_winner_id)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (match_id, round_number) DO NOTHING`,
-      [matchId, roundNumber, JSON.stringify(picks), roundWinnerId]
-    );
-
-    return { moves: picks, results, roundWinnerId };
-  },
-
-  async getMatchModeCode(matchId) {
-    const { rows } = await query(
-      `SELECT gm.code FROM matches m JOIN game_modes gm ON gm.id = m.mode_id WHERE m.id = $1`,
-      [matchId]
-    );
-    return rows[0]?.code || null;
-  },
-
   ROUNDS_TO_WIN,
 };

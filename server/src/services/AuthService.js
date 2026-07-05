@@ -4,7 +4,6 @@ import crypto from 'node:crypto';
 import { config } from '../config/index.js';
 import { query } from '../config/database.js';
 import { UserModel } from '../models/UserModel.js';
-import { AdminLogService } from './AdminLogService.js';
 import { errors } from '../utils/AppError.js';
 
 const RESERVED_USERNAMES = new Set(['admin', 'root', 'system', 'support', 'moderator']);
@@ -42,10 +41,7 @@ export const AuthService = {
     const dummyHash = '$2a$12$CwTycUXWue0Thq9StjUM0uJ8gW4sV0r3I9b4MZsRvSp2vWdL5h5Ny';
     const matches = await bcrypt.compare(password, account?.passwordHash || dummyHash);
 
-    if (!account || !matches) {
-      AdminLogService.log('login', 'login.failed', { targetId: account?.id, metadata: { identifier, ipAddress } });
-      throw errors.unauthorized('ایمیل/نام کاربری یا رمز عبور اشتباه است');
-    }
+    if (!account || !matches) throw errors.unauthorized('ایمیل/نام کاربری یا رمز عبور اشتباه است');
     if (account.status !== 'active') throw errors.forbidden('این حساب کاربری مسدود شده است');
 
     const user = await UserModel.findById(account.id);
@@ -58,7 +54,6 @@ export const AuthService = {
       [account.id, hashToken(refreshToken), userAgent || null, ipAddress || null]
     );
     await UserModel.touchLastSeen(account.id);
-    AdminLogService.log('login', 'login.success', { actorId: account.id, targetId: account.id, metadata: { ipAddress, userAgent } });
 
     return { user, accessToken, refreshToken };
   },

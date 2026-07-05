@@ -4,12 +4,10 @@ import { createSocketServer } from './sockets/index.js';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { pool } from './config/database.js';
-import { AnnouncementService } from './services/AnnouncementService.js';
 
 const app = createApp();
 const httpServer = http.createServer(app);
 createSocketServer(httpServer);
-AnnouncementService.startScheduler();
 
 const server = httpServer.listen(config.port, () => {
   logger.info(`🚀 API listening on :${config.port} [${config.env}]`);
