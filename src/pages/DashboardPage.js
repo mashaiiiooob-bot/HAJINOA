@@ -1,4 +1,4 @@
-import { api } from '../services/api.js';
+import { supabase } from '../services/supabaseClient.js';
 import { AuthStore } from '../services/authStore.js';
 import { formatNumber, escapeHtml } from '../utils/format.js';
 import { navigate } from '../router.js';
@@ -17,19 +17,63 @@ export async function renderDashboardPage(root) {
 
   const user = AuthStore.user;
   let leaderboard = [];
+  let dailyReward = null;
   try {
-    leaderboard = await api.get('/users/leaderboard?limit=6');
+    leaderboard = await loadLeaderboard();
   } catch {
     /* leaderboard is non-critical — page still renders without it */
   }
+  try {
+    const { data, error } = await supabase.rpc('daily_reward_status');
+    if (!error && data?.[0]) {
+      const r = data[0];
+      dailyReward = {
+        claimedToday: r.out_claimed_today,
+        currentStreak: r.out_current_streak,
+        coinsPerDay: r.out_coins_per_day,
+        xpPerDay: r.out_xp_per_day,
+      };
+    }
+  } catch {
+    /* daily reward widget falls back to sample data below if this fails */
+  }
 
-  root.innerHTML = template(user, leaderboard);
+  root.innerHTML = template(user, leaderboard, dailyReward);
   root.querySelector('#cta-play')?.addEventListener('click', () => navigate('/game'));
+  root.querySelector('#claim-daily-reward')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const { data, error } = await supabase.rpc('claim_daily_reward');
+    if (error) {
+      btn.disabled = false;
+      btn.textContent = error.message || 'خطا در دریافت پاداش';
+      return;
+    }
+    const result = data?.[0];
+    btn.outerHTML = `<span class="badge badge-success">دریافت شد! +${formatNumber(result?.out_coins_awarded ?? 0)} سکه</span>`;
+    if (user) user.coins = (user.coins ?? 0) + (result?.out_coins_awarded ?? 0);
+  });
 
   spawnParticles(root.querySelector('.hero-particle-field'), 16);
   root.querySelectorAll('.counter[data-target]').forEach((el) => {
     animateCounter(el, Number(el.dataset.target), { formatFn: (n) => formatNumber(Math.round(n)) });
   });
+}
+
+/** loadLeaderboard() — top players by rank_points, replacing the old
+ *  /users/leaderboard Express endpoint with a direct Supabase query. */
+async function loadLeaderboard() {
+  const { data, error } = await supabase
+    .from('player_stats')
+    .select('user_id, rank_points, users(display_name, level)')
+    .order('rank_points', { ascending: false })
+    .limit(6);
+  if (error) throw new Error(error.message);
+  return (data || []).map((row) => ({
+    displayName: row.users?.display_name || 'بازیکن',
+    level: row.users?.level ?? 1,
+    rankPoints: row.rank_points,
+  }));
 }
 
 function skeletonTemplate() {
@@ -44,7 +88,7 @@ function skeletonTemplate() {
   `;
 }
 
-function template(user, leaderboard) {
+function template(user, leaderboard, dailyReward) {
   return `
     <div class="container page-pad dashboard">
       ${heroScene(user)}
@@ -62,7 +106,7 @@ function template(user, leaderboard) {
 
         <section class="card widget-card span-4 enter-stagger" style="--i:2">
           <div class="widget-title"><h3>چالش‌های روزانه</h3>${targetIcon()}</div>
-          ${dailyChallenges()}
+          ${dailyChallenges(dailyReward)}
         </section>
 
         <section class="card widget-card span-4 enter-stagger" style="--i:3">
@@ -173,10 +217,11 @@ function neuralLines() {
 }
 
 /* ---- Widgets ---- */
-function dailyChallenges() {
+function dailyChallenges(dailyReward) {
   const items = getDailyChallenges();
   return `
     <div class="widget-list">
+      ${dailyReward ? dailyRewardRow(dailyReward) : ''}
       ${items
         .map(
           (c) => `
@@ -189,6 +234,22 @@ function dailyChallenges() {
         </div>`
         )
         .join('')}
+    </div>
+  `;
+}
+
+function dailyRewardRow(reward) {
+  return `
+    <div class="widget-row challenge-row">
+      <div class="challenge-meta">
+        <span class="challenge-name">پاداش روزانه ورود ${reward.currentStreak > 1 ? `· ${reward.currentStreak} روز متوالی` : ''}</span>
+        <div class="challenge-progress-track"><div class="challenge-progress-fill" style="width:${reward.claimedToday ? 100 : 0}%"></div></div>
+      </div>
+      ${
+        reward.claimedToday
+          ? `<span class="badge badge-success">دریافت شد</span>`
+          : `<button id="claim-daily-reward" class="btn btn-sm btn-primary">دریافت ${formatNumber(reward.coinsPerDay)} سکه</button>`
+      }
     </div>
   `;
 }

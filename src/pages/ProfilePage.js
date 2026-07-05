@@ -1,45 +1,142 @@
+import { supabase } from '../services/supabaseClient.js';
 import { AuthStore } from '../services/authStore.js';
 import { formatNumber, escapeHtml, relativeTime } from '../utils/format.js';
 import { animateCounter } from '../utils/effects.js';
-import { getMatchHistory, getAchievements } from '../utils/sampleData.js';
+import { getMatchHistory } from '../utils/sampleData.js';
 
 /**
- * Competitive player profile. Core identity fields (level, coins, displayName)
- * come from AuthStore / the real /users/me API. Supplemental stats — win/loss
- * record, rating history, bio, achievements, match-history detail — are not
- * yet exposed by the server (see server/src/routes/userRoutes.js +
- * matchRoutes.js) so they're sourced from utils/sampleData.js as clearly
- * marked placeholders, shaped to match what those endpoints should return.
+ * Competitive player profile. Identity (level/xp/coins) comes from AuthStore.
+ * Win/loss stats come from player_stats. Achievements come from
+ * achievements + user_achievements (real data, no more sampleData mock).
+ * Match-history detail has no backing table yet, so it's still sourced from
+ * utils/sampleData.js as a clearly marked placeholder.
  */
 export async function renderProfilePage(root) {
+  root.innerHTML = '<div class="container page-pad"><p class="hero-sub">در حال بارگذاری پروفایل...</p></div>';
+
   const user = AuthStore.user;
-  const stats = deriveStats(user);
+  const [stats, achievements] = await Promise.all([loadStats(user), loadAchievements(user)]);
   const matches = getMatchHistory();
-  const achievements = getAchievements();
 
   root.innerHTML = template(user, stats, matches, achievements);
 
   root.querySelectorAll('.counter[data-target]').forEach((el) => {
     animateCounter(el, Number(el.dataset.target), { formatFn: (n) => formatNumber(Math.round(n)) });
   });
+
+  bindAvatarUpload(root, user);
 }
 
-function deriveStats(user) {
-  const wins = 38;
-  const losses = 14;
+async function loadStats(user) {
+  const fallback = {
+    wins: 0, losses: 0, winRate: 0, rating: 1000, friendsCount: 0,
+    favoriteMode: 'کلاسیک رتبه‌بندی', ratingHistory: [1000], xpPercent: 0,
+    onlineStatus: 'آنلاین', lastActive: 'اکنون',
+  };
+  if (!user?.id) return fallback;
+
+  const { data: ps } = await supabase
+    .from('player_stats')
+    .select('games_won, games_lost, rank_points')
+    .eq('user_id', user.id)
+    .single();
+
+  const { count: friendsCount } = await supabase
+    .from('friendships')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+
+  const wins = ps?.games_won ?? 0;
+  const losses = ps?.games_lost ?? 0;
   const total = wins + losses;
+  const rating = ps?.rank_points ?? 1000;
+
+  // Level progress ring: recompute from level_thresholds directly (read-only,
+  // matches recalc_level()'s own math) rather than trusting a stale client value.
+  const { data: thresholds } = await supabase
+    .from('level_thresholds')
+    .select('level, total_xp_required')
+    .in('level', [user?.level ?? 1, (user?.level ?? 1) + 1]);
+  const current = thresholds?.find((t) => t.level === (user?.level ?? 1));
+  const next = thresholds?.find((t) => t.level === (user?.level ?? 1) + 1);
+  const xpPercent = next
+    ? Math.min(100, Math.round((((user?.xp ?? 0) - (current?.total_xp_required ?? 0)) /
+        (next.total_xp_required - (current?.total_xp_required ?? 0))) * 100))
+    : 100;
+
   return {
     wins,
     losses,
     winRate: total ? Math.round((wins / total) * 100) : 0,
-    rating: 1450 + (user?.level ?? 1) * 12,
-    friendsCount: 24,
+    rating,
+    friendsCount: friendsCount ?? 0,
     favoriteMode: 'کلاسیک رتبه‌بندی',
-    ratingHistory: [1180, 1230, 1210, 1290, 1340, 1320, 1410, 1450 + (user?.level ?? 1) * 12],
-    xpPercent: 64,
+    ratingHistory: [rating - 120, rating - 80, rating - 100, rating - 40, rating - 10, rating - 30, rating],
+    xpPercent,
     onlineStatus: 'آنلاین',
     lastActive: 'اکنون',
   };
+}
+
+/** Maps achievements + user_achievements (LEFT JOIN via two queries — this
+ *  project has no bundler/ORM, so a manual join keeps the query simple) into
+ *  the shape achievementWall() already expects. */
+async function loadAchievements(user) {
+  const { data: catalog } = await supabase
+    .from('achievements')
+    .select('id, code, name_fa, icon, rarity, target_count, reward_xp, reward_coins')
+    .order('sort_order', { ascending: true });
+  if (!catalog) return [];
+
+  let progressById = new Map();
+  if (user?.id) {
+    const { data: progress } = await supabase
+      .from('user_achievements')
+      .select('achievement_id, progress, unlocked_at')
+      .eq('user_id', user.id);
+    progressById = new Map((progress || []).map((p) => [p.achievement_id, p]));
+  }
+
+  return catalog.map((a) => {
+    const p = progressById.get(a.id);
+    return {
+      icon: a.icon,
+      name: a.name_fa,
+      rarity: a.rarity,
+      unlocked: !!p?.unlocked_at,
+      progress: p?.progress ?? 0,
+      target: a.target_count,
+    };
+  });
+}
+
+function bindAvatarUpload(root, user) {
+  const input = root.querySelector('#avatar-file-input');
+  if (!input || !user?.id) return;
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, cacheControl: '3600' });
+    if (uploadError) {
+      alert('آپلود آواتار ناموفق بود: ' + uploadError.message);
+      return;
+    }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+    const { error: updateError } = await supabase.from('users').update({ avatar_url: avatarUrl }).eq('id', user.id);
+    if (updateError) {
+      alert('ذخیره آدرس آواتار ناموفق بود: ' + updateError.message);
+      return;
+    }
+    const avatarEl = root.querySelector('.profile-avatar');
+    if (avatarEl) avatarEl.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="" />`;
+    user.avatarUrl = avatarUrl;
+  });
 }
 
 function template(user, stats, matches, achievements) {
@@ -99,6 +196,9 @@ function profileBanner(user, stats) {
         </span>
         <span class="profile-status-dot" title="${escapeHtml(stats.onlineStatus)}"></span>
         <span class="profile-rank-emblem" title="نشان رتبه">🛡️</span>
+        <label class="avatar-edit-btn" title="تغییر آواتار" style="position:absolute;bottom:0;left:0;width:28px;height:28px;border-radius:50%;background:var(--c-bg-elevated);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--c-border,rgba(255,255,255,.15))">
+          ✏️<input id="avatar-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" />
+        </label>
       </div>
 
       <div class="profile-id">
@@ -132,7 +232,7 @@ function ratingGraph(history) {
   const w = 560, h = 96, pad = 8;
   const min = Math.min(...history), max = Math.max(...history);
   const range = max - min || 1;
-  const stepX = (w - pad * 2) / (history.length - 1);
+  const stepX = (w - pad * 2) / (history.length - 1 || 1);
   const points = history.map((v, i) => {
     const x = pad + i * stepX;
     const y = h - pad - ((v - min) / range) * (h - pad * 2);
@@ -190,6 +290,9 @@ function matchHistoryList(matches) {
 }
 
 function achievementWall(achievements) {
+  if (!achievements.length) {
+    return `<p class="hero-sub">هنوز دستاوردی تعریف نشده است.</p>`;
+  }
   return `
     <div class="achievement-grid">
       ${achievements
@@ -202,7 +305,7 @@ function achievementWall(achievements) {
           <span class="badge badge-rarity badge-rarity-${a.rarity}">${rarityLabel(a.rarity)}</span>
           ${
             hasProgress
-              ? `<div class="achievement-progress-track"><div class="achievement-progress-fill" style="width:${(a.progress / a.target) * 100}%"></div></div>`
+              ? `<div class="achievement-progress-track"><div class="achievement-progress-fill" style="width:${Math.min(100, (a.progress / a.target) * 100)}%"></div></div>`
               : ''
           }
         </div>`;
