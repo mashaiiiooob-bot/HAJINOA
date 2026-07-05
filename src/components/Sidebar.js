@@ -91,7 +91,75 @@ export function renderSidebar(user) {
     renderSidebar(user);
   });
 
+  renderMobileNav(user, navItems);
   highlightActiveRoute();
+}
+
+/** Mobile bottom nav bar — the sidebar is hidden entirely under 880px (see
+ *  sidebar.css), which previously left mobile users with NO way to reach
+ *  game/tournaments/marketplace/clan/friends/chat/leaderboard/profile at
+ *  all. This renders a fixed bottom bar with the same NAV_ITEMS, plus a
+ *  "more" sheet for items that don't fit in the 5 primary slots. */
+function renderMobileNav(user, navItems) {
+  let bar = document.getElementById('app-mobile-nav');
+  if (!bar) {
+    bar = document.createElement('nav');
+    bar.id = 'app-mobile-nav';
+    bar.setAttribute('aria-label', 'پیمایش موبایل');
+    document.body.appendChild(bar);
+  }
+
+  // 4 primary slots + a "more" button covering the rest, so the bar never
+  // overflows on small screens regardless of how many routes exist.
+  const PRIMARY_COUNT = 4;
+  const primary = navItems.slice(0, PRIMARY_COUNT);
+  const overflow = navItems.slice(PRIMARY_COUNT);
+
+  bar.innerHTML = `
+    ${primary.map((item) => `
+      <a href="#${item.route}" class="mobile-nav-item main-nav-item" data-route="${item.route}">
+        ${icon(item.icon)}
+        <span class="mobile-nav-label">${item.label}</span>
+      </a>`).join('')}
+    ${overflow.length ? `
+      <button class="mobile-nav-item mobile-nav-more" id="mobile-nav-more-btn" aria-haspopup="true" aria-expanded="false">
+        ${icon('collapse', 'mobile-nav-more-icon')}
+        <span class="mobile-nav-label">بیشتر</span>
+      </button>` : ''}
+  `;
+
+  let sheet = document.getElementById('mobile-nav-sheet');
+  if (overflow.length) {
+    if (!sheet) {
+      sheet = document.createElement('div');
+      sheet.id = 'mobile-nav-sheet';
+      document.body.appendChild(sheet);
+    }
+    sheet.innerHTML = `
+      <div class="mobile-nav-sheet-backdrop"></div>
+      <div class="mobile-nav-sheet-panel">
+        <span class="mobile-nav-sheet-handle" aria-hidden="true"></span>
+        ${overflow.map((item) => `
+          <a href="#${item.route}" class="mobile-nav-sheet-item main-nav-item" data-route="${item.route}">
+            ${icon(item.icon)}
+            <span>${item.label}</span>
+          </a>`).join('')}
+      </div>
+    `;
+    const closeSheet = () => {
+      sheet.classList.remove('open');
+      document.getElementById('mobile-nav-more-btn')?.setAttribute('aria-expanded', 'false');
+    };
+    sheet.querySelector('.mobile-nav-sheet-backdrop')?.addEventListener('click', closeSheet);
+    sheet.querySelectorAll('.mobile-nav-sheet-item').forEach((a) => a.addEventListener('click', closeSheet));
+    document.getElementById('mobile-nav-more-btn')?.addEventListener('click', () => {
+      const willOpen = !sheet.classList.contains('open');
+      sheet.classList.toggle('open', willOpen);
+      document.getElementById('mobile-nav-more-btn')?.setAttribute('aria-expanded', String(willOpen));
+    });
+  } else {
+    sheet?.remove();
+  }
 }
 
 document.addEventListener('router:active-route', () => highlightActiveRoute());
@@ -104,11 +172,18 @@ export function highlightActiveRoute() {
   items.forEach((a) => a.classList.toggle('active', a === activeEl));
 
   const glow = document.querySelector('.nav-active-glow');
-  if (glow && activeEl) {
+  if (glow && activeEl && document.getElementById('app-sidebar')?.contains(activeEl)) {
     glow.style.transform = `translateY(${activeEl.offsetTop}px)`;
     glow.style.height = `${activeEl.offsetHeight}px`;
     glow.style.opacity = '1';
   } else if (glow) {
     glow.style.opacity = '0';
   }
+
+  // If the active route is one of the "more" sheet items, mark the mobile
+  // "more" button itself as active so mobile users can still see they're on
+  // e.g. Clans/Chat/Profile even though those live in the overflow sheet.
+  const moreBtn = document.getElementById('mobile-nav-more-btn');
+  const sheetHasActive = document.querySelector('#mobile-nav-sheet .mobile-nav-sheet-item.active');
+  moreBtn?.classList.toggle('active', !!sheetHasActive);
 }

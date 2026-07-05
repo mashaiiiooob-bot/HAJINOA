@@ -126,3 +126,85 @@
 @media (max-width: 880px) {
   #app-sidebar { display: none !important; }
 }
+
+/* ==========================================================================
+   Mobile bottom navigation — the sidebar above is fully hidden under 880px,
+   so this is the ONLY way mobile users can reach game/tournaments/
+   marketplace/clan/friends/chat/leaderboard/profile. Always present in the
+   DOM (appended to body by Sidebar.js) but only shown below the breakpoint.
+   ========================================================================== */
+#app-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 880px) {
+  #app-mobile-nav {
+    display: flex;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: var(--z-sidebar);
+    height: var(--mobile-nav-h, 64px);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: rgba(10, 10, 13, 0.92);
+    backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
+    border-top: 1px solid var(--c-hairline);
+  }
+
+  /* Push page content above the fixed bar so it never hides the last widget. */
+  .app-main { padding-bottom: calc(var(--mobile-nav-h, 64px) + env(safe-area-inset-bottom, 0)); }
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  color: var(--c-text-faint);
+  font-size: var(--fs-2xs); font-weight: 600;
+  transition: color var(--dur-fast) var(--ease);
+}
+.mobile-nav-item .nav-icon { width: 22px; height: 22px; }
+.mobile-nav-item.active { color: var(--c-gold-light); }
+.mobile-nav-item.active .nav-icon { color: var(--c-gold-light); }
+.mobile-nav-label { white-space: nowrap; }
+.mobile-nav-more-icon { transform: rotate(90deg); }
+
+/* ---- Overflow sheet: routes beyond the first 4 primary slots ---- */
+#mobile-nav-sheet {
+  display: none;
+}
+#mobile-nav-sheet.open {
+  display: block;
+  position: fixed; inset: 0; z-index: var(--z-modal, 999);
+}
+.mobile-nav-sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+.mobile-nav-sheet-panel {
+  position: absolute; inset-inline: 0; bottom: 0;
+  background: rgba(17, 17, 20, 0.98);
+  border-top: 1px solid var(--c-hairline);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom, 0));
+  display: flex; flex-direction: column; gap: 2px;
+  box-shadow: var(--shadow-3);
+  animation: mobile-sheet-rise var(--dur-base) var(--ease-out-expo);
+}
+@keyframes mobile-sheet-rise {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.mobile-nav-sheet-handle {
+  width: 40px; height: 4px; border-radius: var(--r-full);
+  background: var(--c-border-strong);
+  margin: 0 auto var(--sp-3);
+}
+.mobile-nav-sheet-item {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 14px var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--c-text-muted); font-weight: 600; font-size: var(--fs-sm);
+}
+.mobile-nav-sheet-item.active { color: var(--c-gold-light); background: var(--c-surface-hover); }
+.mobile-nav-sheet-item .nav-icon { width: 20px; height: 20px; }

@@ -10,6 +10,7 @@ body {
   background: var(--c-bg);
   color: var(--c-text);
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.7;
   font-size: var(--fs-sm);
   -webkit-font-smoothing: antialiased;
@@ -127,6 +128,7 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.01em; }
 .app-shell {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   z-index: var(--z-base);
 }
