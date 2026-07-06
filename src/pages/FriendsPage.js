@@ -1,11 +1,14 @@
-import { api } from '../services/api.js';
-import { getSocket } from '../services/socket.js';
-import { AuthStore } from '../services/authStore.js';
+import { supabase } from '../services/supabaseClient.js';
 import { toast } from '../components/Toast.js';
 import { navigate } from '../router.js';
 import { escapeHtml, relativeTime } from '../utils/format.js';
 
-/** renderFriends() — search users, manage friend requests, live online status, invite to game. */
+/** renderFriends() — search users, manage friend requests, invite to game.
+ *  Backed directly by Supabase RPCs (list_friends, list_friend_requests,
+ *  send_friend_request, respond_friend_request, remove_friend, search_users) —
+ *  no Express/Socket.io server involved. Live online-presence (the old
+ *  'friend:presence' socket event) has no Supabase Realtime replacement yet,
+ *  so it's omitted for now rather than left silently broken. */
 export async function renderFriends(root) {
   let tab = 'friends'; // friends | requests | search
   let friends = [];
@@ -13,22 +16,6 @@ export async function renderFriends(root) {
   let searchResults = [];
   let searchTerm = '';
   let loading = true;
-  let socket = null;
-
-  function ensureSocket() {
-    if (socket) return socket;
-    socket = getSocket();
-    socket.off('friend:presence');
-    socket.on('friend:presence', ({ userId, online }) => {
-      const f = friends.find((x) => x.id === userId);
-      if (f) {
-        f.isOnline = online;
-        f.lastSeenAt = online ? f.lastSeenAt : new Date().toISOString();
-        if (tab === 'friends') renderContent();
-      }
-    });
-    return socket;
-  }
 
   function shell() {
     root.innerHTML = `
@@ -75,14 +62,37 @@ export async function renderFriends(root) {
     loading = true;
     renderContent();
     try {
-      if (tab === 'friends') friends = await api.get('/friends');
-      else if (tab === 'requests') requests = await api.get('/friends/requests');
+      if (tab === 'friends') friends = await loadFriends();
+      else if (tab === 'requests') requests = await loadRequests();
     } catch (err) {
       toast(err.message || 'خطا در بارگذاری اطلاعات', 'error');
     } finally {
       loading = false;
       updateTabButtons();
     }
+  }
+
+  async function loadFriends() {
+    const { data, error } = await supabase.rpc('list_friends');
+    if (error) throw new Error(error.message);
+    return (data || []).map((f) => ({
+      id: f.id,
+      displayName: f.display_name,
+      avatarUrl: f.avatar_url,
+      lastSeenAt: f.last_seen_at,
+      isOnline: false, // no realtime presence channel wired up yet
+    }));
+  }
+
+  async function loadRequests() {
+    const { data, error } = await supabase.rpc('list_friend_requests');
+    if (error) throw new Error(error.message);
+    const incoming = [], outgoing = [];
+    for (const r of data || []) {
+      const item = { friendshipId: r.friendship_id, displayName: r.display_name, createdAt: r.created_at };
+      (r.direction === 'incoming' ? incoming : outgoing).push(item);
+    }
+    return { incoming, outgoing };
   }
 
   /* ------------------------------------------------------------- Friends */
@@ -171,7 +181,6 @@ export async function renderFriends(root) {
                 .map(
                   (u) => `
                 <div class="mp-item-card card friend-card">
-                  <span class="friend-status-dot ${u.isOnline ? 'online' : 'offline'}" aria-hidden="true"></span>
                   <div class="mp-item-icon" aria-hidden="true">${u.avatarUrl ? `<img class="clan-avatar-img" src="${escapeHtml(u.avatarUrl)}" alt="" />` : (u.displayName?.[0] || '؟')}</div>
                   <h4 class="mp-item-name">${escapeHtml(u.displayName)}</h4>
                   <p class="mp-item-cat">@${escapeHtml(u.username)}</p>
@@ -207,7 +216,7 @@ export async function renderFriends(root) {
       });
     });
     content.querySelectorAll('[data-remove-friend]').forEach((btn) => {
-      btn.addEventListener('click', () => removeFriend(btn.dataset.removeFriend));
+      btn.addEventListener('click', () => removeFriendHandler(btn.dataset.removeFriend));
     });
     content.querySelectorAll('[data-accept]').forEach((btn) => {
       btn.addEventListener('click', () => respondRequest(btn.dataset.accept, 'accept'));
@@ -232,7 +241,11 @@ export async function renderFriends(root) {
           return;
         }
         try {
-          searchResults = await api.get(`/friends/search?q=${encodeURIComponent(searchTerm.trim())}`);
+          const { data, error } = await supabase.rpc('search_users', { p_query: searchTerm.trim() });
+          if (error) throw new Error(error.message);
+          searchResults = (data || []).map((u) => ({
+            id: u.id, username: u.username, displayName: u.display_name, avatarUrl: u.avatar_url,
+          }));
         } catch (err) {
           toast(err.message || 'جستجو ناموفق بود', 'error');
         }
@@ -244,7 +257,8 @@ export async function renderFriends(root) {
 
   async function sendRequest(addresseeId) {
     try {
-      await api.post('/friends/requests', { addresseeId });
+      const { error } = await supabase.rpc('send_friend_request', { p_addressee_id: addresseeId });
+      if (error) throw new Error(error.message);
       toast('درخواست دوستی ارسال شد', 'success');
       searchResults = searchResults.filter((u) => u.id !== addresseeId);
       renderContent();
@@ -254,9 +268,9 @@ export async function renderFriends(root) {
   }
 
   async function respondRequest(friendshipId, action) {
-    const endpoints = { accept: 'accept', reject: 'reject', cancel: 'cancel' };
     try {
-      await api.post(`/friends/requests/${friendshipId}/${endpoints[action]}`, {});
+      const { error } = await supabase.rpc('respond_friend_request', { p_friendship_id: friendshipId, p_action: action });
+      if (error) throw new Error(error.message);
       toast(
         action === 'accept' ? 'درخواست دوستی پذیرفته شد' : action === 'reject' ? 'درخواست رد شد' : 'درخواست لغو شد',
         'success'
@@ -268,10 +282,11 @@ export async function renderFriends(root) {
     }
   }
 
-  async function removeFriend(friendId) {
+  async function removeFriendHandler(friendId) {
     if (!confirm('آیا از حذف این دوست مطمئن هستید؟')) return;
     try {
-      await api.del(`/friends/${friendId}`);
+      const { error } = await supabase.rpc('remove_friend', { p_friend_id: friendId });
+      if (error) throw new Error(error.message);
       toast('دوست حذف شد', 'success');
       friends = friends.filter((f) => f.id !== friendId);
       renderContent();
@@ -290,16 +305,9 @@ export async function renderFriends(root) {
   }
 
   shell();
-  ensureSocket();
   await Promise.all([
-    api
-      .get('/friends')
-      .then((f) => (friends = f))
-      .catch(() => {}),
-    api
-      .get('/friends/requests')
-      .then((r) => (requests = r))
-      .catch(() => {}),
+    loadFriends().then((f) => (friends = f)).catch(() => {}),
+    loadRequests().then((r) => (requests = r)).catch(() => {}),
   ]);
   loading = false;
   updateTabButtons();

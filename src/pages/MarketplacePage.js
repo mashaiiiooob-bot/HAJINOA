@@ -1,4 +1,4 @@
-import { api } from '../services/api.js';
+import { supabase } from '../services/supabaseClient.js';
 import { AuthStore } from '../services/authStore.js';
 import { openModal, closeModal } from '../components/Modal.js';
 import { toast } from '../components/Toast.js';
@@ -22,6 +22,7 @@ const EXPIRY_OPTIONS = [
   { value: '168', label: '۷ روز' },
   { value: '336', label: '۱۴ روز' },
 ];
+const PAGE_SIZE = 12;
 
 function debounce(fn, wait) {
   let t;
@@ -31,7 +32,10 @@ function debounce(fn, wait) {
   };
 }
 
-/** renderMarketplace() — browse/search/sort/filter listings, manage inventory, buy & sell. */
+/** renderMarketplace() — browse/search/sort/filter listings, manage inventory, buy & sell.
+ *  Backed by Supabase RPCs (list_marketplace_listings, list_my_inventory,
+ *  list_my_marketplace_history, create_marketplace_listing,
+ *  cancel_marketplace_listing, buy_marketplace_listing) — no Express server. */
 export async function renderMarketplace(root) {
   let tab = 'browse'; // browse | inventory | history
   let loading = true;
@@ -39,7 +43,7 @@ export async function renderMarketplace(root) {
 
   let filters = { search: '', category: '', rarity: '', sort: 'newest', minPrice: '', maxPrice: '' };
   let page = 1;
-  let listingsResult = { listings: [], total: 0, totalPages: 1 };
+  let listingsResult = { listings: [], totalCount: 0 };
 
   let inventory = [];
   let history = [];
@@ -87,11 +91,41 @@ export async function renderMarketplace(root) {
     renderContent();
     try {
       if (tab === 'browse') {
-        listingsResult = await api.get(`/marketplace/listings?${buildQuery()}`);
+        const { data, error } = await supabase.rpc('list_marketplace_listings', {
+          p_search: filters.search || null,
+          p_category: filters.category || null,
+          p_rarity: filters.rarity || null,
+          p_sort: filters.sort,
+          p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
+          p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
+          p_page: page,
+          p_page_size: PAGE_SIZE,
+        });
+        if (error) throw new Error(error.message);
+        listingsResult = {
+          listings: (data || []).map((l) => ({
+            id: l.id, itemName: l.item_name, category: l.category, rarity: l.rarity,
+            priceCoins: Number(l.price_coins), sellerId: l.seller_id,
+            sellerUsername: l.seller_username, sellerDisplayName: l.seller_display_name,
+          })),
+          totalCount: data?.[0]?.total_count ? Number(data[0].total_count) : 0,
+        };
       } else if (tab === 'inventory') {
-        [inventory, history] = await Promise.all([api.get('/marketplace/inventory'), api.get('/marketplace/history/me')]);
+        const [invRes, histRes] = await Promise.all([
+          supabase.rpc('list_my_inventory'),
+          supabase.rpc('list_my_marketplace_history'),
+        ]);
+        if (invRes.error) throw new Error(invRes.error.message);
+        if (histRes.error) throw new Error(histRes.error.message);
+        inventory = (invRes.data || []).map((i) => ({
+          id: i.id, itemName: i.item_name, category: i.category, rarity: i.rarity,
+          equipped: i.equipped, isListed: i.is_listed,
+        }));
+        history = mapHistory(histRes.data);
       } else {
-        history = await api.get('/marketplace/history/me');
+        const { data, error } = await supabase.rpc('list_my_marketplace_history');
+        if (error) throw new Error(error.message);
+        history = mapHistory(data);
       }
     } catch (err) {
       errorMsg = err.message || 'بارگذاری اطلاعات ناموفق بود';
@@ -100,17 +134,11 @@ export async function renderMarketplace(root) {
     }
   }
 
-  function buildQuery() {
-    const params = new URLSearchParams();
-    if (filters.search) params.set('search', filters.search);
-    if (filters.category) params.set('category', filters.category);
-    if (filters.rarity) params.set('rarity', filters.rarity);
-    if (filters.sort) params.set('sort', filters.sort);
-    if (filters.minPrice) params.set('minPrice', filters.minPrice);
-    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
-    params.set('page', String(page));
-    params.set('pageSize', '12');
-    return params.toString();
+  function mapHistory(data) {
+    return (data || []).map((h) => ({
+      id: h.id, role: h.role, itemName: h.item_name,
+      priceCoins: Number(h.price_coins), status: h.status, createdAt: h.created_at,
+    }));
   }
 
   /* ---------------------------------------------------------------- Browse */
@@ -166,16 +194,14 @@ export async function renderMarketplace(root) {
 
   function itemIcon(category) {
     const icons = {
-      avatar: '🧑',
-      frame: '🖼️',
-      emote: '😄',
-      theme: '🎨',
-      booster: '⚡',
-      border: '⭕',
-      name_color: '🔤',
-      badge: '🎖️',
+      avatar: '🧑', frame: '🖼️', emote: '😄', theme: '🎨',
+      booster: '⚡', border: '⭕', name_color: '🔤', badge: '🎖️',
     };
     return icons[category] || '✨';
+  }
+
+  function totalPages() {
+    return Math.max(1, Math.ceil(listingsResult.totalCount / PAGE_SIZE));
   }
 
   function browseTemplate() {
@@ -196,12 +222,13 @@ export async function renderMarketplace(root) {
   }
 
   function paginationTemplate() {
-    if (listingsResult.totalPages <= 1) return '';
+    const tp = totalPages();
+    if (tp <= 1) return '';
     return `
       <div class="mp-pagination">
         <button class="btn btn-secondary btn-sm" id="mp-prev-page" ${page <= 1 ? 'disabled' : ''}>قبلی</button>
-        <span>صفحه ${formatNumber(page)} از ${formatNumber(listingsResult.totalPages)}</span>
-        <button class="btn btn-secondary btn-sm" id="mp-next-page" ${page >= listingsResult.totalPages ? 'disabled' : ''}>بعدی</button>
+        <span>صفحه ${formatNumber(page)} از ${formatNumber(tp)}</span>
+        <button class="btn btn-secondary btn-sm" id="mp-next-page" ${page >= tp ? 'disabled' : ''}>بعدی</button>
       </div>
     `;
   }
@@ -367,7 +394,7 @@ export async function renderMarketplace(root) {
         renderContent();
       });
       content.querySelector('#mp-next-page')?.addEventListener('click', async () => {
-        page = Math.min(listingsResult.totalPages, page + 1);
+        page = Math.min(totalPages(), page + 1);
         await loadCurrentTab();
         renderContent();
       });
@@ -381,7 +408,7 @@ export async function renderMarketplace(root) {
         btn.addEventListener('click', () => openSellModal(btn.dataset.sell));
       });
       content.querySelectorAll('[data-cancel-listing]').forEach((btn) => {
-        btn.addEventListener('click', () => cancelListing(btn.dataset.cancelListing));
+        btn.addEventListener('click', () => cancelListingHandler(btn.dataset.cancelListing));
       });
     }
   }
@@ -414,8 +441,9 @@ export async function renderMarketplace(root) {
       e.target.disabled = true;
       e.target.textContent = 'در حال پردازش…';
       try {
-        const result = await api.post(`/marketplace/listings/${listingId}/buy`, {});
-        AuthStore.setUser({ ...AuthStore.user, coins: AuthStore.user.coins - result.priceCoins });
+        const { data: priceCoins, error } = await supabase.rpc('buy_marketplace_listing', { p_listing_id: listingId });
+        if (error) throw new Error(error.message);
+        AuthStore.setUser({ ...AuthStore.user, coins: AuthStore.user.coins - Number(priceCoins) });
         document.getElementById('mp-balance').textContent = formatNumber(AuthStore.user.coins);
         toast('خرید با موفقیت انجام شد!', 'success');
         closeModal();
@@ -474,11 +502,12 @@ export async function renderMarketplace(root) {
       e.target.disabled = true;
       e.target.textContent = 'در حال ثبت…';
       try {
-        await api.post('/marketplace/listings', {
-          inventoryId,
-          priceCoins,
-          expiresInHours: expiryInput.value ? Number(expiryInput.value) : undefined,
+        const { error } = await supabase.rpc('create_marketplace_listing', {
+          p_inventory_id: inventoryId,
+          p_price_coins: priceCoins,
+          p_expires_in_hours: expiryInput.value ? Number(expiryInput.value) : null,
         });
+        if (error) throw new Error(error.message);
         toast('آگهی با موفقیت ثبت شد', 'success');
         closeModal();
         await loadCurrentTab();
@@ -491,9 +520,10 @@ export async function renderMarketplace(root) {
     });
   }
 
-  async function cancelListing(listingId) {
+  async function cancelListingHandler(listingId) {
     try {
-      await api.del(`/marketplace/listings/${listingId}`);
+      const { error } = await supabase.rpc('cancel_marketplace_listing', { p_listing_id: listingId });
+      if (error) throw new Error(error.message);
       toast('آگهی لغو شد', 'success');
       await loadCurrentTab();
       renderContent();

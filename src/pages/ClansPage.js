@@ -1,5 +1,4 @@
-import { api } from '../services/api.js';
-import { getSocket } from '../services/socket.js';
+import { supabase } from '../services/supabaseClient.js';
 import { AuthStore } from '../services/authStore.js';
 import { openModal, closeModal } from '../components/Modal.js';
 import { toast } from '../components/Toast.js';
@@ -7,91 +6,74 @@ import { escapeHtml, formatNumber, relativeTime } from '../utils/format.js';
 
 const ROLE_LABEL = { leader: 'مالک', officer: 'افسر', member: 'عضو' };
 
-/** renderClans() — the clan page: create/browse/join, live profile with chat, roster, and leaderboard. */
+/** renderClans() — the clan page: create/browse/join, live profile with chat, roster, and leaderboard.
+ *  Backed by Supabase RPCs (create_clan, list_clans, get_clan_detail, join_clan,
+ *  leave_clan, kick_clan_member, transfer_clan_ownership, update_clan_announcement)
+ *  and chat_messages + Realtime for clan chat (scope='clan', scope_ref_id=clanId) —
+ *  no Express/Socket.io server involved. Member join/leave/kick updates are
+ *  picked up by re-fetching on a Realtime subscription to clan_members, since
+ *  there's no equivalent of the old socket 'clan:member:*' broadcast events. */
 export async function renderClans(root) {
-  let socket = null;
+  let channel = null;
   let view = 'loading'; // loading | browse | profile
-  let myClan = null; // { clanId, role } | null
+  let myClanId = null;
   let clan = null; // full clan detail (members, statistics)
-  let browseResult = { clans: [], total: 0, totalPages: 1 };
+  let browseResult = { clans: [], totalCount: 0 };
   let leaderboard = [];
   let search = '';
   let page = 1;
   let chatMessages = [];
-  let typingUsers = new Set();
   let showLeaderboard = false;
 
-  function ensureSocket() {
-    if (socket) return socket;
-    socket = getSocket();
-    attachListeners();
-    return socket;
+  const nameCache = new Map();
+  async function nameFor(userId) {
+    if (nameCache.has(userId)) return nameCache.get(userId);
+    if (userId === AuthStore.user.id) {
+      nameCache.set(userId, AuthStore.user.displayName);
+      return AuthStore.user.displayName;
+    }
+    const { data } = await supabase.from('users').select('display_name').eq('id', userId).single();
+    const name = data?.display_name || 'کاربر';
+    nameCache.set(userId, name);
+    return name;
   }
 
-  function attachListeners() {
-    socket.off('chat:message', onChatMessage);
-    socket.off('chat:typing', onTyping);
-    socket.off('chat:typing:stop', onTypingStop);
-    socket.off('clan:member:joined');
-    socket.off('clan:member:left');
-    socket.off('clan:member:kicked');
-    socket.off('clan:ownership:transferred');
-    socket.off('clan:announcement:updated');
+  function teardownChannel() {
+    if (channel) {
+      supabase.removeChannel(channel);
+      channel = null;
+    }
+  }
 
-    socket.on('chat:message', onChatMessage);
-    socket.on('chat:typing', onTyping);
-    socket.on('chat:typing:stop', onTypingStop);
-
-    socket.on('clan:member:joined', (evt) => {
-      if (clan && evt.clanId === clan.id) refreshClan();
-    });
-    socket.on('clan:member:left', (evt) => {
-      if (clan && evt.clanId === clan.id) refreshClan();
-    });
-    socket.on('clan:member:kicked', (evt) => {
-      if (clan && evt.clanId === clan.id) {
-        if (evt.userId === AuthStore.user.id) {
-          toast('شما از کلن اخراج شدید', 'error');
-          myClan = null;
-          clan = null;
-          view = 'browse';
-          loadBrowse().then(render);
-        } else {
-          refreshClan();
+  function subscribeToClan(clanId) {
+    teardownChannel();
+    channel = supabase
+      .channel(`clan-${clanId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `scope_ref_id=eq.${clanId}` },
+        async (payload) => {
+          if (payload.new.scope !== 'clan') return;
+          const author_name = await nameFor(payload.new.user_id);
+          chatMessages = [...chatMessages, { ...payload.new, author_name }].slice(-150);
+          renderChatMessages();
+          scrollChatToBottom();
         }
-      }
-    });
-    socket.on('clan:ownership:transferred', (evt) => {
-      if (clan && evt.clanId === clan.id) refreshClan();
-    });
-    socket.on('clan:announcement:updated', (evt) => {
-      if (clan && evt.clanId === clan.id) refreshClan();
-    });
-  }
-
-  function onChatMessage(payload) {
-    if (payload.scope !== 'clan' || !clan || payload.scopeRefId !== clan.id) return;
-    chatMessages = [...chatMessages, payload].slice(-100);
-    renderChatMessages();
-    scrollChatToBottom();
-  }
-
-  function onTyping({ scope, scopeRefId, userId }) {
-    if (scope !== 'clan' || !clan || scopeRefId !== clan.id || userId === AuthStore.user.id) return;
-    typingUsers.add(userId);
-    renderTypingIndicator();
-  }
-
-  function onTypingStop({ scope, scopeRefId, userId }) {
-    if (scope !== 'clan' || !clan || scopeRefId !== clan.id) return;
-    typingUsers.delete(userId);
-    renderTypingIndicator();
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clan_members', filter: `clan_id=eq.${clanId}` },
+        () => refreshClan()
+      )
+      .subscribe();
   }
 
   async function refreshClan() {
-    if (!myClan) return;
+    if (!myClanId) return;
     try {
-      clan = await api.get(`/clans/${myClan.clanId}`);
+      const { data, error } = await supabase.rpc('get_clan_detail', { p_clan_id: myClanId });
+      if (error) throw new Error(error.message);
+      clan = data;
       render();
     } catch {
       /* ignore transient errors */
@@ -99,36 +81,49 @@ export async function renderClans(root) {
   }
 
   async function loadBrowse() {
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    params.set('page', String(page));
-    params.set('pageSize', '12');
-    const [clans, board] = await Promise.all([
-      api.get(`/clans?${params.toString()}`),
-      showLeaderboard ? api.get('/clans/leaderboard') : Promise.resolve(leaderboard),
-    ]);
-    browseResult = clans;
-    if (showLeaderboard) leaderboard = board;
+    const { data, error } = await supabase.rpc('list_clans', { p_search: search || null, p_page: page, p_page_size: 12 });
+    if (error) throw new Error(error.message);
+    browseResult = {
+      clans: (data || []).map((c) => ({
+        id: c.id, name: c.name, tag: c.tag, avatarUrl: c.avatar_url,
+        level: c.level, trophies: c.trophies, memberCount: Number(c.member_count),
+      })),
+      totalCount: data?.[0]?.total_count ? Number(data[0].total_count) : 0,
+    };
+    if (showLeaderboard) {
+      const { data: lb, error: lbErr } = await supabase.rpc('list_clan_leaderboard', { p_limit: 20 });
+      if (lbErr) throw new Error(lbErr.message);
+      leaderboard = (lb || []).map((c) => ({
+        name: c.name, tag: c.tag, trophies: c.trophies,
+        memberCount: Number(c.member_count), totalWins: Number(c.total_wins),
+      }));
+    }
   }
 
   async function loadInitial() {
     try {
-      myClan = await api.get('/clans/mine');
+      const { data: mine, error } = await supabase.rpc('get_my_clan');
+      if (error) throw new Error(error.message);
+      const myClan = mine?.[0];
+
       if (myClan) {
-        clan = await api.get(`/clans/${myClan.clanId}`);
+        myClanId = myClan.clan_id;
+        const { data: detail, error: detailErr } = await supabase.rpc('get_clan_detail', { p_clan_id: myClanId });
+        if (detailErr) throw new Error(detailErr.message);
+        clan = detail;
         view = 'profile';
-        const socketRef = ensureSocket();
-        socketRef.emit('clan:watch', { clanId: clan.id });
-        socketRef.emit('chat:watch', { scope: 'clan', scopeRefId: clan.id });
-        const history = await api.get(`/clans/${clan.id}/chat`);
-        chatMessages = history.map((m) => ({
-          id: m.id,
-          scope: 'clan',
-          scopeRefId: clan.id,
-          body: m.body,
-          user: { id: m.userId, username: m.username, displayName: m.displayName, avatarUrl: m.avatarUrl },
-          createdAt: m.createdAt,
-        }));
+
+        const { data: history, error: histErr } = await supabase
+          .from('chat_messages')
+          .select('id, user_id, body, created_at, users(display_name)')
+          .eq('scope', 'clan')
+          .eq('scope_ref_id', myClanId)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (histErr) throw new Error(histErr.message);
+        chatMessages = (history || []).map((m) => ({ ...m, author_name: m.users?.display_name })).reverse();
+
+        subscribeToClan(myClanId);
       } else {
         view = 'browse';
         await loadBrowse();
@@ -146,7 +141,6 @@ export async function renderClans(root) {
       <section class="card widget-card clan-chat-card">
         <div class="widget-title"><h3>گفتگوی کلن</h3></div>
         <div class="chat-messages" id="clan-chat-messages">${renderMessageList()}</div>
-        <p class="chat-typing" id="clan-typing-indicator"></p>
         <form class="chat-input-row" id="clan-chat-form">
           <input type="text" id="clan-chat-input" class="mp-search" placeholder="پیام خود را بنویسید…" maxlength="500" autocomplete="off" />
           <button class="btn btn-primary btn-sm" type="submit">ارسال</button>
@@ -159,12 +153,12 @@ export async function renderClans(root) {
     if (!chatMessages.length) return `<p class="chat-empty">هنوز پیامی ارسال نشده است.</p>`;
     return chatMessages
       .map((m) => {
-        const mine = m.user?.id === AuthStore.user.id;
+        const mine = m.user_id === AuthStore.user.id;
         return `
         <div class="chat-msg${mine ? ' chat-msg-mine' : ''}">
-          <span class="chat-msg-author">${escapeHtml(m.user?.displayName || '')}</span>
+          <span class="chat-msg-author">${escapeHtml(m.author_name || '')}</span>
           <span class="chat-msg-body">${escapeHtml(m.body)}</span>
-          <span class="chat-msg-time">${relativeTime(m.createdAt)}</span>
+          <span class="chat-msg-time">${relativeTime(m.created_at)}</span>
         </div>`;
       })
       .join('');
@@ -175,23 +169,17 @@ export async function renderClans(root) {
     if (el) el.innerHTML = renderMessageList();
   }
 
-  function renderTypingIndicator() {
-    const el = document.getElementById('clan-typing-indicator');
-    if (!el) return;
-    const names = [...typingUsers]
-      .map((id) => clan.members.find((m) => m.userId === id)?.displayName)
-      .filter(Boolean);
-    el.textContent = names.length ? `${names.join('، ')} در حال تایپ...` : '';
-  }
-
   function scrollChatToBottom() {
     const el = document.getElementById('clan-chat-messages');
     if (el) el.scrollTop = el.scrollHeight;
   }
 
-  function sendClanMessage(text) {
-    if (!text.trim()) return;
-    ensureSocket().emit('chat:send', { scope: 'clan', scopeRefId: clan.id, body: text.trim() });
+  async function sendClanMessage(text) {
+    if (!text.trim() || !clan) return;
+    const { error } = await supabase
+      .from('chat_messages')
+      .insert({ scope: 'clan', scope_ref_id: clan.id, user_id: AuthStore.user.id, body: text.trim() });
+    if (error) toast('ارسال پیام ناموفق بود: ' + error.message, 'error');
   }
 
   /* --------------------------------------------------------------- Browse */
@@ -344,10 +332,7 @@ export async function renderClans(root) {
     if (!content) return;
     content.innerHTML = view === 'profile' && clan ? profileTemplate() : browseTemplate();
     bindEvents();
-    if (view === 'profile') {
-      scrollChatToBottom();
-      renderTypingIndicator();
-    }
+    if (view === 'profile') scrollChatToBottom();
   }
 
   function bindEvents() {
@@ -376,10 +361,10 @@ export async function renderClans(root) {
       render();
     });
     content.querySelectorAll('[data-join-clan]').forEach((btn) => {
-      btn.addEventListener('click', () => joinClan(btn.dataset.joinClan));
+      btn.addEventListener('click', () => joinClanHandler(btn.dataset.joinClan));
     });
 
-    content.querySelector('#btn-leave-clan')?.addEventListener('click', leaveClan);
+    content.querySelector('#btn-leave-clan')?.addEventListener('click', leaveClanHandler);
     content.querySelector('#btn-edit-announcement')?.addEventListener('click', openAnnouncementModal);
     content.querySelectorAll('[data-kick]').forEach((btn) => {
       btn.addEventListener('click', () => kickMember(btn.dataset.kick));
@@ -392,19 +377,18 @@ export async function renderClans(root) {
     const input = content.querySelector('#clan-chat-input');
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
-      sendClanMessage(input.value);
+      const text = input.value;
       input.value = '';
-    });
-    input?.addEventListener('input', () => {
-      ensureSocket().emit('chat:typing', { scope: 'clan', scopeRefId: clan.id });
+      sendClanMessage(text);
     });
   }
 
   /* --------------------------------------------------------------- Actions */
 
-  async function joinClan(clanId) {
+  async function joinClanHandler(clanId) {
     try {
-      await api.post(`/clans/${clanId}/join`, {});
+      const { error } = await supabase.rpc('join_clan', { p_clan_id: clanId });
+      if (error) throw new Error(error.message);
       toast('با موفقیت به کلن پیوستید', 'success');
       await loadInitial();
       render();
@@ -413,12 +397,14 @@ export async function renderClans(root) {
     }
   }
 
-  async function leaveClan() {
+  async function leaveClanHandler() {
     if (!confirm('آیا مطمئن هستید که می‌خواهید از کلن خارج شوید؟')) return;
     try {
-      await api.post(`/clans/${clan.id}/leave`, {});
+      const { error } = await supabase.rpc('leave_clan', { p_clan_id: clan.id });
+      if (error) throw new Error(error.message);
       toast('از کلن خارج شدید', 'success');
-      myClan = null;
+      teardownChannel();
+      myClanId = null;
       clan = null;
       view = 'browse';
       await loadBrowse();
@@ -431,7 +417,8 @@ export async function renderClans(root) {
   async function kickMember(userId) {
     if (!confirm('آیا از اخراج این عضو مطمئن هستید؟')) return;
     try {
-      await api.post(`/clans/${clan.id}/kick`, { userId });
+      const { error } = await supabase.rpc('kick_clan_member', { p_clan_id: clan.id, p_user_id: userId });
+      if (error) throw new Error(error.message);
       toast('عضو اخراج شد', 'success');
       await refreshClan();
     } catch (err) {
@@ -442,7 +429,8 @@ export async function renderClans(root) {
   async function transferOwnership(userId) {
     if (!confirm('آیا از انتقال مالکیت کلن مطمئن هستید؟')) return;
     try {
-      await api.post(`/clans/${clan.id}/transfer-ownership`, { userId });
+      const { error } = await supabase.rpc('transfer_clan_ownership', { p_clan_id: clan.id, p_user_id: userId });
+      if (error) throw new Error(error.message);
       toast('مالکیت کلن منتقل شد', 'success');
       await refreshClan();
     } catch (err) {
@@ -479,7 +467,8 @@ export async function renderClans(root) {
       e.target.disabled = true;
       e.target.textContent = 'در حال ایجاد…';
       try {
-        await api.post('/clans', { name, tag, description: description || undefined });
+        const { error } = await supabase.rpc('create_clan', { p_name: name, p_tag: tag, p_description: description || null });
+        if (error) throw new Error(error.message);
         toast('کلن با موفقیت ایجاد شد', 'success');
         closeModal();
         await loadInitial();
@@ -513,7 +502,8 @@ export async function renderClans(root) {
       const text = document.getElementById('clan-announcement-input').value;
       e.target.disabled = true;
       try {
-        await api.post(`/clans/${clan.id}/announcement`, { announcement: text });
+        const { error } = await supabase.rpc('update_clan_announcement', { p_clan_id: clan.id, p_announcement: text });
+        if (error) throw new Error(error.message);
         toast('اعلامیه ثبت شد', 'success');
         closeModal();
         await refreshClan();
@@ -533,7 +523,6 @@ export async function renderClans(root) {
   }
 
   shell();
-  ensureSocket();
   await loadInitial();
   render();
 }
