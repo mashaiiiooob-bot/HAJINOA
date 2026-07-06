@@ -1,4 +1,4 @@
-import { getSocket } from '../services/socket.js';
+import { supabase } from '../services/supabaseClient.js';
 import { AuthStore } from '../services/authStore.js';
 import { toast } from '../components/Toast.js';
 import { escapeHtml } from '../utils/format.js';
@@ -6,18 +6,15 @@ import { spawnParticles, animateCounter } from '../utils/effects.js';
 
 export function renderGamePage(root) {
   let state = 'idle'; // idle | searching | starting | matched | finished
-  let selectedMode = 'classic'; // classic | rps
-  let match = null; // { matchId, opponent, scores, mode }
+  let selectedMode = 'classic'; // classic only for now — rps has no backend support yet
+  let match = null; // { matchId, opponent, scores, mode, roundNumber }
   let lastChoice = null;
-  let roundFlash = null; // classic: { guessedHand, hidden, correct, whoScored } | rps: { myMove, oppMove, outcome, whoScored }
+  let roundFlash = null; // { guessedHand, hidden, correct, whoScored }
   let countdown = 3;
-  let socket;
-
-  const RPS_MOVES = [
-    { key: 'rock', label: 'سنگ', emoji: '🪨' },
-    { key: 'paper', label: 'کاغذ', emoji: '📄' },
-    { key: 'scissors', label: 'قیچی', emoji: '✂️' },
-  ];
+  let queueChannel = null;
+  let matchChannel = null;
+  let roundsChannel = null;
+  let processedRoundNumbers = new Set();
 
   function render() {
     root.innerHTML = `
@@ -64,10 +61,10 @@ export function renderGamePage(root) {
               <span class="mode-pick-name">دست یا خالی</span>
               <span class="mode-pick-desc">توکن پنهان را حدس بزنید</span>
             </button>
-            <button class="mode-pick-card${selectedMode === 'rps' ? ' active' : ''}" data-pick-mode="rps">
+            <button class="mode-pick-card disabled" data-pick-mode="rps" disabled title="به‌زودی">
               <span class="mode-pick-icon" aria-hidden="true">✂️</span>
               <span class="mode-pick-name">سنگ کاغذ قیچی</span>
-              <span class="mode-pick-desc">حریف را رودررو شکست دهید</span>
+              <span class="mode-pick-desc">به‌زودی</span>
             </button>
           </div>
           <button class="btn btn-primary btn-block btn-magnetic" id="btn-find-match">یافتن حریف</button>
@@ -101,7 +98,6 @@ export function renderGamePage(root) {
       const myTurn = isMyTurn();
       const flashingMe = roundFlash?.whoScored === 'me';
       const flashingOpp = roundFlash?.whoScored === 'opp';
-      const isRps = match.mode === 'rps';
 
       return `
         <div class="card match-card${myTurn ? ' your-turn' : ''}">
@@ -120,10 +116,10 @@ export function renderGamePage(root) {
           </div>
 
           ${myTurn ? `<p class="turn-banner"><span class="pulse-dot pulse-ring"></span>نوبت شماست — حدس بزنید!</p>` : ''}
-          <p class="match-status" id="match-status">${statusText(isRps)}</p>
+          <p class="match-status" id="match-status">${statusText()}</p>
 
           <div class="hand-choices">
-            ${isRps ? RPS_MOVES.map((m) => rpsButton(m)).join('') : `${handButton('left', '✋ چپ')}${handButton('right', '🤚 راست')}`}
+            ${handButton('left', '✋ چپ')}${handButton('right', '🤚 راست')}
           </div>
         </div>
       `;
@@ -149,37 +145,10 @@ export function renderGamePage(root) {
     return '';
   }
 
-  function statusText(isRps) {
-    if (isRps) {
-      if (roundFlash) {
-        const oppMoveLabel = RPS_MOVES.find((m) => m.key === roundFlash.oppMove)?.label || '';
-        if (roundFlash.outcome === 'draw') return `هر دو ${oppMoveLabel} انتخاب کردید — مساوی!`;
-        return `حریف ${oppMoveLabel} انتخاب کرد.`;
-      }
-      return 'سنگ، کاغذ یا قیچی؟';
-    }
-    return roundFlash ? `توکن در دست ${roundFlash.hidden === 'left' ? 'چپ' : 'راست'} بود.` : 'دست چپ یا راست؟ توکن در یکی از دست‌هاست.';
-  }
-
-  function rpsButton(moveDef) {
-    const { key, label, emoji } = moveDef;
-    const disabled = !!lastChoice || !!roundFlash;
-    const isChosen = lastChoice === key;
-    let cls = 'hand-btn';
-    let stateCls = '';
-
-    if (roundFlash?.myMove === key) {
-      stateCls = roundFlash.outcome === 'win' ? ' revealed-hit chosen correct' : roundFlash.outcome === 'lose' ? ' chosen wrong' : ' chosen';
-    } else if (isChosen && !roundFlash) {
-      stateCls = ' waiting-fist chosen';
-    }
-
-    return `
-      <button class="${cls}${stateCls}" data-hand="${key}" ${disabled ? 'disabled' : ''}>
-        <span class="hand-reveal-icon" aria-hidden="true">${emoji}</span>
-        <span class="hand-btn-label">${label}</span>
-      </button>
-    `;
+  function statusText() {
+    return roundFlash
+      ? `توکن در دست ${roundFlash.hidden === 'left' ? 'چپ' : 'راست'} بود.`
+      : 'دست چپ یا راست؟ توکن در یکی از دست‌هاست.';
   }
 
   function handButton(hand, label) {
@@ -211,40 +180,193 @@ export function renderGamePage(root) {
 
   function bindEvents() {
     root.querySelectorAll('[data-pick-mode]').forEach((btn) => {
+      if (btn.disabled) return;
       btn.addEventListener('click', () => {
         selectedMode = btn.dataset.pickMode;
         render();
       });
     });
-    document.getElementById('btn-find-match')?.addEventListener('click', () => {
-      socket = getSocket();
-      attachSocketListeners();
-      socket.emit('queue:join', { mode: selectedMode, ranked: true });
-      state = 'searching';
-      render();
-    });
-    document.getElementById('btn-cancel-queue')?.addEventListener('click', () => {
-      socket?.emit('queue:leave', { mode: selectedMode, ranked: true });
-      state = 'idle';
-      render();
-    });
+    document.getElementById('btn-find-match')?.addEventListener('click', joinQueue);
+    document.getElementById('btn-cancel-queue')?.addEventListener('click', cancelQueue);
     document.getElementById('btn-rematch')?.addEventListener('click', () => {
       state = 'idle';
       match = null;
       lastChoice = null;
       roundFlash = null;
+      processedRoundNumbers = new Set();
       render();
     });
     root.querySelectorAll('.hand-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (lastChoice || roundFlash) return;
-        lastChoice = btn.dataset.hand;
-        socket.emit('match:round:play', { matchId: match.matchId, guess: lastChoice });
-        render();
-        const statusEl = document.getElementById('match-status');
-        if (statusEl) statusEl.textContent = 'در انتظار حریف…';
-      });
+      btn.addEventListener('click', () => playRound(btn.dataset.hand));
     });
+  }
+
+  /* ---------------------------------------------------------- Matchmaking */
+
+  async function joinQueue() {
+    state = 'searching';
+    render();
+    try {
+      const { data: ticket, error } = await supabase.rpc('join_matchmaking_queue', {
+        p_mode_code: selectedMode,
+        p_is_ranked: true,
+      });
+      if (error) throw error;
+
+      if (ticket.status === 'matched' && ticket.match_id) {
+        await enterMatch(ticket.match_id);
+      } else {
+        subscribeToQueueTicket(ticket.id);
+      }
+    } catch (err) {
+      toast(err.message || 'خطا در جستجوی حریف', 'error');
+      state = 'idle';
+      render();
+    }
+  }
+
+  function subscribeToQueueTicket(ticketId) {
+    queueChannel?.unsubscribe();
+    queueChannel = supabase
+      .channel(`queue:${ticketId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'matchmaking_queue', filter: `id=eq.${ticketId}` },
+        (payload) => {
+          const row = payload.new;
+          if (row.status === 'matched' && row.match_id) {
+            queueChannel?.unsubscribe();
+            queueChannel = null;
+            enterMatch(row.match_id);
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  async function cancelQueue() {
+    queueChannel?.unsubscribe();
+    queueChannel = null;
+    try {
+      await supabase.rpc('leave_matchmaking_queue', { p_mode_code: selectedMode, p_is_ranked: true });
+    } catch {
+      /* best-effort — the queue row will simply sit unmatched otherwise */
+    }
+    state = 'idle';
+    render();
+  }
+
+  /* --------------------------------------------------------------- Match */
+
+  async function enterMatch(matchId) {
+    const { data: participants, error } = await supabase
+      .from('match_participants')
+      .select('user_id, users(display_name)')
+      .eq('match_id', matchId);
+    if (error || !participants) {
+      toast('خطا در بارگذاری اطلاعات مسابقه', 'error');
+      state = 'idle';
+      render();
+      return;
+    }
+    const opponentRow = participants.find((p) => p.user_id !== AuthStore.user.id);
+
+    const { data: myUserRow } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
+
+    match = {
+      matchId,
+      opponent: { id: opponentRow.user_id, displayName: opponentRow.users?.display_name || 'حریف' },
+      scores: {},
+      mode: 'classic',
+      roundNumber: 1,
+      coinsBefore: myUserRow?.coins ?? AuthStore.user.coins ?? 0,
+      xpBefore: myUserRow?.xp ?? AuthStore.user.xp ?? 0,
+    };
+    lastChoice = null;
+    roundFlash = null;
+    processedRoundNumbers = new Set();
+    subscribeToMatch(matchId);
+    state = 'starting';
+    runStartingCountdown();
+  }
+
+  function subscribeToMatch(matchId) {
+    matchChannel?.unsubscribe();
+    matchChannel = supabase
+      .channel(`match:${matchId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
+        (payload) => {
+          if (payload.new.status === 'completed') handleMatchFinished(payload.new);
+        }
+      )
+      .subscribe();
+
+    roundsChannel?.unsubscribe();
+    roundsChannel = supabase
+      .channel(`match-rounds:${matchId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'match_rounds', filter: `match_id=eq.${matchId}` },
+        (payload) => handleRoundResolved(payload.new)
+      )
+      .subscribe();
+  }
+
+  async function handleRoundResolved(roundRow) {
+    if (processedRoundNumbers.has(roundRow.round_number)) return;
+    processedRoundNumbers.add(roundRow.round_number);
+
+    const hidden = roundRow.moves?.hidden;
+    const roundWinnerId = roundRow.round_winner_id;
+    const prevYou = match.scores?.[AuthStore.user.id] || 0;
+    const prevOpp = match.scores?.[match.opponent.id] || 0;
+    const newYou = roundWinnerId === AuthStore.user.id ? prevYou + 1 : prevYou;
+    const newOpp = roundWinnerId === match.opponent.id ? prevOpp + 1 : prevOpp;
+    const whoScored = roundWinnerId === AuthStore.user.id ? 'me' : roundWinnerId === match.opponent.id ? 'opp' : null;
+
+    roundFlash = {
+      guessedHand: lastChoice,
+      hidden,
+      correct: lastChoice === hidden,
+      whoScored,
+    };
+    match.scores = { ...match.scores, [AuthStore.user.id]: newYou, [match.opponent.id]: newOpp };
+    match.roundNumber = roundRow.round_number + 1;
+    render();
+    triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
+    setTimeout(() => {
+      if (state !== 'matched') return; // match may have already finished
+      roundFlash = null;
+      lastChoice = null;
+      render();
+    }, 1200);
+  }
+
+  async function handleMatchFinished(matchRow) {
+    matchChannel?.unsubscribe();
+    roundsChannel?.unsubscribe();
+    matchChannel = null;
+    roundsChannel = null;
+
+    const won = matchRow.winner_id === AuthStore.user.id;
+    let coinGain = 0;
+    let xpGain = 0;
+    if (won) {
+      const { data: myUserRow } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
+      if (myUserRow) {
+        coinGain = myUserRow.coins - (match.coinsBefore ?? myUserRow.coins);
+        xpGain = myUserRow.xp - (match.xpBefore ?? myUserRow.xp);
+        AuthStore.user.coins = myUserRow.coins;
+        AuthStore.user.xp = myUserRow.xp;
+      }
+    }
+
+    match = { ...match, winnerId: matchRow.winner_id, coinGain, xpGain };
+    state = 'finished';
+    toast(won ? 'پیروزی! 🎉' : 'باخت — دوباره تلاش کنید', won ? 'win' : 'loss');
+    render();
   }
 
   function runStartingCountdown() {
@@ -262,60 +384,24 @@ export function renderGamePage(root) {
     }, 550);
   }
 
-  function attachSocketListeners() {
-    socket.off('queue:matched');
-    socket.off('match:round:result');
-    socket.off('match:finished');
-    socket.off('queue:error');
-    socket.off('match:error');
+  async function playRound(hand) {
+    if (lastChoice || roundFlash) return;
+    lastChoice = hand;
+    render();
+    const statusEl = document.getElementById('match-status');
+    if (statusEl) statusEl.textContent = 'در انتظار حریف…';
 
-    socket.on('queue:matched', ({ matchId, opponent, mode }) => {
-      match = { matchId, opponent, scores: {}, mode: mode || 'classic' };
+    try {
+      await supabase.rpc('submit_round_pick', {
+        p_match_id: match.matchId,
+        p_round_number: match.roundNumber,
+        p_guess: hand,
+      });
+    } catch (err) {
+      toast(err.message || 'خطا در ثبت حدس', 'error');
       lastChoice = null;
-      roundFlash = null;
-      state = 'starting';
-      runStartingCountdown();
-    });
-
-    socket.on('match:round:result', ({ hidden, moves, results, scores }) => {
-      const prevYou = match.scores?.[AuthStore.user.id] || 0;
-      const prevOpp = match.scores?.[match.opponent.id] || 0;
-      const newYou = scores[AuthStore.user.id] || 0;
-      const newOpp = scores[match.opponent.id] || 0;
-      const whoScored = newYou > prevYou ? 'me' : newOpp > prevOpp ? 'opp' : null;
-
-      if (match.mode === 'rps') {
-        const myMove = moves?.[AuthStore.user.id];
-        const oppMove = moves?.[match.opponent.id];
-        const myResult = results?.[AuthStore.user.id]; // 'win' | 'lose' | 'draw'
-        roundFlash = { myMove, oppMove, outcome: myResult, correct: myResult === 'win', whoScored };
-      } else {
-        roundFlash = {
-          guessedHand: lastChoice,
-          hidden,
-          correct: lastChoice === hidden,
-          whoScored,
-        };
-      }
-      match.scores = scores;
       render();
-      triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
-      setTimeout(() => {
-        roundFlash = null;
-        lastChoice = null;
-        render();
-      }, 1200);
-    });
-
-    socket.on('match:finished', ({ winnerId, coinGain, xpGain, scores }) => {
-      match = { ...match, winnerId, coinGain, xpGain, scores };
-      state = 'finished';
-      toast(winnerId === AuthStore.user.id ? 'پیروزی! 🎉' : 'باخت — دوباره تلاش کنید', winnerId === AuthStore.user.id ? 'win' : 'loss');
-      render();
-    });
-
-    socket.on('queue:error', ({ message }) => toast(message, 'error'));
-    socket.on('match:error', ({ message }) => toast(message, 'error'));
+    }
   }
 
   render();
