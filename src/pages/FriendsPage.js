@@ -108,10 +108,9 @@ export async function renderFriends(root) {
           .map(
             (f) => `
           <div class="mp-item-card card friend-card">
-            <span class="friend-status-dot ${f.isOnline ? 'online' : 'offline'}" aria-hidden="true"></span>
             <div class="mp-item-icon" aria-hidden="true">${f.avatarUrl ? `<img class="clan-avatar-img" src="${escapeHtml(f.avatarUrl)}" alt="" />` : (f.displayName?.[0] || '؟')}</div>
             <h4 class="mp-item-name">${escapeHtml(f.displayName)}</h4>
-            <p class="mp-item-cat">${f.isOnline ? 'برخط' : `آخرین بازدید: ${relativeTime(f.lastSeenAt)}`}</p>
+            <p class="mp-item-cat">آخرین بازدید: ${relativeTime(f.lastSeenAt)}</p>
             <div class="mp-item-footer" style="flex-direction:column;gap:6px;">
               <button class="btn btn-primary btn-sm btn-block" data-invite="${f.id}">دعوت به بازی</button>
               <button class="btn btn-ghost btn-sm btn-block" data-remove-friend="${f.id}">حذف دوست</button>

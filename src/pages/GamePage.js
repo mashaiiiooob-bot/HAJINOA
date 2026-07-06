@@ -207,6 +207,7 @@ export function renderGamePage(root) {
       match = null;
       lastChoice = null;
       roundFlash = null;
+      processedRoundNumbers = new Set();
       render();
     });
     root.querySelectorAll('.hand-btn').forEach((btn) => {
