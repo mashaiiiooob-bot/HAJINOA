@@ -144,11 +144,22 @@
   100% { background-position: 0 50%; }
 }
 
-/* ---- Empty state ---- */
+/* ---- Empty state ----
+   FIX: previously had no background/border/radius/shadow, so whenever a
+   page rendered <div class="empty-state"> directly inside its content
+   area (not wrapped in a .card — e.g. Marketplace's "no listings found",
+   Profile-adjacent empty sections, Clans, Friends), it fell through to the
+   page's dark body background with square corners and no depth — visible
+   as a flat black rectangle. Giving it the same surface/border/radius/
+   shadow treatment as .card fixes this everywhere at once. */
 .empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: var(--sp-3); padding: var(--sp-7) var(--sp-4); text-align: center;
   color: var(--c-text-muted);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1), var(--shadow-inset-hairline);
 }
 .empty-state .empty-icon { font-size: 2.5rem; opacity: 0.5; }
 
