@@ -164,11 +164,14 @@
 /* ---- Widget grid shared by Dashboard + Profile ---- */
 .widget-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--sp-4); }
 .span-4 { grid-column: span 4; }
+.span-5 { grid-column: span 5; }
 .span-6 { grid-column: span 6; }
+.span-7 { grid-column: span 7; }
 .span-8 { grid-column: span 8; }
 .span-12 { grid-column: span 12; }
 @media (max-width: 980px) {
-  .widget-grid .span-4, .widget-grid .span-6, .widget-grid .span-8 { grid-column: span 12; }
+  .widget-grid .span-4, .widget-grid .span-5, .widget-grid .span-6,
+  .widget-grid .span-7, .widget-grid .span-8 { grid-column: span 12; }
 }
 
 .widget-card { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4); }

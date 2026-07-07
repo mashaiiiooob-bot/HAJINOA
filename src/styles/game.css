@@ -65,6 +65,7 @@
 .hand-choices { display: flex; gap: var(--sp-4); justify-content: center; }
 .hand-btn {
   flex: 1; max-width: 190px; position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
   padding: var(--sp-5); font-size: var(--fs-lg); font-weight: 700;
   background: var(--c-bg-elevated); border: 1px solid var(--c-border); border-radius: var(--r-lg);
   transition: transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
@@ -154,7 +155,6 @@
 }
 
 /* ---- Hand reveal stage: the buttons themselves double as animated hand props ---- */
-.hand-btn { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
 .hand-reveal-icon {
   font-size: 2.6rem; line-height: 1;
   transition: transform var(--dur-base) var(--ease-spring), filter var(--dur-base) var(--ease);
@@ -211,6 +211,8 @@
 }
 .mode-pick-card:hover { transform: translateY(-3px); border-color: var(--c-gold); }
 .mode-pick-card.active { border-color: var(--c-gold); box-shadow: var(--shadow-gold-glow); background: var(--c-surface-hover); }
+.mode-pick-disabled { opacity: 0.45; cursor: not-allowed; }
+.mode-pick-disabled:hover { transform: none; border-color: var(--c-border); }
 .mode-pick-icon { font-size: 1.8rem; }
 .mode-pick-name { font-weight: 700; font-size: var(--fs-sm); }
 .mode-pick-desc { font-size: var(--fs-2xs); color: var(--c-text-faint); text-align: center; }

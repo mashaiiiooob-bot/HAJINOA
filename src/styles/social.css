@@ -54,6 +54,7 @@
 /* ---- Clan profile ---- */
 .clan-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-md); }
 .clan-tag { color: var(--c-gold-light); font-weight: 700; font-size: 0.85em; }
+.clan-header-card { background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md); }
 .clan-header-top { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
 .clan-header-top .clan-avatar { width: 64px; height: 64px; font-size: 2rem; flex-shrink: 0; }
 .clan-header-top > div:nth-child(2) { flex: 1; min-width: 200px; }
@@ -66,12 +67,9 @@
 .clan-announcement { color: var(--c-text-muted); font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
 
 /* ---- Friend cards / presence ---- */
+/* friend-status-dot base + modifiers now live in dashboard.css (single
+   source of truth — see comment there for why). */
 .friend-card { position: relative; }
-.friend-status-dot {
-  width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0;
-  background: var(--c-text-faint); box-shadow: 0 0 0 2px var(--c-bg-elevated);
-}
-.friend-status-dot.online { background: var(--c-success); box-shadow: 0 0 0 2px var(--c-bg-elevated), 0 0 8px var(--c-success); }
 .mp-item-card .friend-status-dot { position: absolute; top: var(--sp-3); left: var(--sp-3); }
 
 /* ---- Chat layout (global/clan/direct) ---- */

@@ -7,6 +7,7 @@
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   padding: var(--sp-5);
+  isolation: isolate;
 }
 .auth-card {
   width: 100%; max-width: 420px;
@@ -15,7 +16,6 @@
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-3);
 }
-.auth-screen { isolation: isolate; }
 .auth-logo-mark {
   display: inline-flex; align-items: center; justify-content: center;
   width: 88px; height: 88px; border-radius: var(--r-lg);

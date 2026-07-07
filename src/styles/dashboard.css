@@ -105,9 +105,18 @@
 .challenge-reward { font-size: var(--fs-xs); color: var(--c-gold-light); font-weight: 700; white-space: nowrap; }
 
 .friend-row .avatar { width: 36px; height: 36px; font-size: var(--fs-sm); }
-.friend-status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.friend-status-online { background: var(--c-success); box-shadow: 0 0 8px var(--c-success-glow); }
-.friend-status-ingame { background: var(--c-gold); box-shadow: 0 0 8px var(--c-gold-glow); }
+/* Base dot + two supported modifier patterns, unified: some pages toggle
+   .online/.offline (FriendsPage.js), others use suffix classes like
+   .friend-status-online (DashboardPage.js/sampleData.js) — both now resolve
+   to the same visual result instead of one silently having no color/shadow. */
+.friend-status-dot {
+  width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  background: var(--c-text-faint); box-shadow: 0 0 0 2px var(--c-bg-elevated);
+}
+.friend-status-dot.online, .friend-status-dot.friend-status-online {
+  background: var(--c-success); box-shadow: 0 0 0 2px var(--c-bg-elevated), 0 0 8px var(--c-success);
+}
+.friend-status-dot.friend-status-ingame { background: var(--c-gold); box-shadow: 0 0 0 2px var(--c-bg-elevated), 0 0 8px var(--c-gold); }
 .friend-name { font-weight: 600; font-size: var(--fs-sm); flex: 1; }
 .friend-activity { font-size: var(--fs-2xs); color: var(--c-text-faint); }
 
