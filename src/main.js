@@ -1,7 +1,9 @@
 import { AuthStore } from './services/authStore.js';
+import { supabase } from './services/supabaseClient.js';
 import { renderHeader } from './components/Header.js';
 import { renderSidebar } from './components/Sidebar.js';
 import { renderLoginPage } from './pages/LoginPage.js';
+import { renderResetPasswordPage } from './pages/ResetPasswordPage.js';
 import { renderDashboardPage } from './pages/DashboardPage.js';
 import { renderGamePage } from './pages/GamePage.js';
 import { renderLeaderboardPage } from './pages/LeaderboardPage.js';
@@ -18,7 +20,9 @@ import { toast } from './components/Toast.js';
 import { initRipples, initSpotlight, initMagnetic } from './utils/effects.js';
 import { getSocket } from './services/socket.js';
 
-const PUBLIC_ROUTES = new Set(['/login']);
+// /reset-password is public (reached via the password-recovery email link,
+// before the visitor necessarily has a "logged in" session in the normal sense)
+const PUBLIC_ROUTES = new Set(['/login', '/reset-password']);
 let notificationsBooted = false;
 
 function setShellVisibility() {
@@ -54,10 +58,21 @@ document.addEventListener('auth:expired', () => {
   navigate('/login');
 });
 
+// Supabase fires PASSWORD_RECOVERY (instead of the usual SIGNED_IN) when the
+// visitor lands here via the link from resetPasswordForEmail()'s email.
+// Route them straight to the "set a new password" screen regardless of
+// whichever page they happened to land on.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    navigate('/reset-password');
+  }
+});
+
 function boot() {
   const root = document.getElementById('app-root');
 
   registerRoute('/login', renderLoginPage);
+  registerRoute('/reset-password', renderResetPasswordPage);
   registerRoute('/', renderDashboardPage);
   registerRoute('/game', renderGamePage);
   registerRoute('/leaderboard', renderLeaderboardPage);
@@ -78,7 +93,7 @@ function boot() {
       navigate('/login');
       return false;
     }
-    if (AuthStore.user && isPublic) {
+    if (AuthStore.user && isPublic && path !== '/reset-password') {
       navigate('/');
       return false;
     }
