@@ -4,33 +4,17 @@ import { toast } from '../components/Toast.js';
 import { escapeHtml } from '../utils/format.js';
 import { spawnParticles, animateCounter } from '../utils/effects.js';
 
-/** renderGamePage() — matchmaking + live round play.
- *  Backed entirely by Postgres (no Socket.io/Express):
- *  - join_matchmaking_queue()/leave_matchmaking_queue() RPCs pair two waiting
- *    players atomically (FOR UPDATE SKIP LOCKED, see migration 013).
- *  - We watch our own matchmaking_queue row via Realtime; when it flips to
- *    'matched' we have a match_id and move to the starting countdown.
- *  - submit_round_pick() RPC resolves a round once both players have picked
- *    (server-side coin flip — never trust a client-declared result), and
- *    finishes the match + grants rewards on the 3rd round won.
- *  - We watch match_rounds (for round results) and matches (for the finish
- *    event) via Realtime.
- *
- *  NOTE: only the 'classic' hand-guess mode is wired up. The 'rps' (rock-
- *  paper-scissors) mode referenced in the old frontend was never actually
- *  implemented server-side (checked: submit_round_pick only ever accepted
- *  left/right), so it's shown as "coming soon" rather than left silently
- *  broken. */
 export function renderGamePage(root) {
   let state = 'idle'; // idle | searching | starting | matched | finished
-  let selectedMode = 'classic';
-  let match = null; // { matchId, opponentId, opponentName, scores, mode }
+  let selectedMode = 'classic'; // classic only for now — rps has no backend support yet
+  let match = null; // { matchId, opponent, scores, mode, roundNumber }
   let lastChoice = null;
   let roundFlash = null; // { guessedHand, hidden, correct, whoScored }
   let countdown = 3;
   let queueChannel = null;
   let matchChannel = null;
-  let queueTicketId = null;
+  let roundsChannel = null;
+  let processedRoundNumbers = new Set();
 
   function render() {
     root.innerHTML = `
@@ -77,7 +61,7 @@ export function renderGamePage(root) {
               <span class="mode-pick-name">دست یا خالی</span>
               <span class="mode-pick-desc">توکن پنهان را حدس بزنید</span>
             </button>
-            <button class="mode-pick-card mode-pick-disabled" data-pick-mode="rps" disabled>
+            <button class="mode-pick-card disabled" data-pick-mode="rps" disabled title="به‌زودی">
               <span class="mode-pick-icon" aria-hidden="true">✂️</span>
               <span class="mode-pick-name">سنگ کاغذ قیچی</span>
               <span class="mode-pick-desc">به‌زودی</span>
@@ -109,7 +93,8 @@ export function renderGamePage(root) {
     }
     if (state === 'matched') {
       const youScore = match.scores?.[AuthStore.user.id] || 0;
-      const oppScore = match.scores?.[match.opponentId] || 0;
+      const oppId = match.opponent.id;
+      const oppScore = match.scores?.[oppId] || 0;
       const myTurn = isMyTurn();
       const flashingMe = roundFlash?.whoScored === 'me';
       const flashingOpp = roundFlash?.whoScored === 'opp';
@@ -124,8 +109,8 @@ export function renderGamePage(root) {
             </div>
             <span class="match-vs">VS</span>
             <div class="match-player">
-              <span class="avatar">${escapeHtml(match.opponentName[0])}</span>
-              <span>${escapeHtml(match.opponentName)}</span>
+              <span class="avatar">${escapeHtml(match.opponent.displayName[0])}</span>
+              <span>${escapeHtml(match.opponent.displayName)}</span>
               <span class="match-score${flashingOpp ? ' score-bump' : ''}">${oppScore}</span>
             </div>
           </div>
@@ -161,7 +146,9 @@ export function renderGamePage(root) {
   }
 
   function statusText() {
-    return roundFlash ? `توکن در دست ${roundFlash.hidden === 'left' ? 'چپ' : 'راست'} بود.` : 'دست چپ یا راست؟ توکن در یکی از دست‌هاست.';
+    return roundFlash
+      ? `توکن در دست ${roundFlash.hidden === 'left' ? 'چپ' : 'راست'} بود.`
+      : 'دست چپ یا راست؟ توکن در یکی از دست‌هاست.';
   }
 
   function handButton(hand, label) {
@@ -200,9 +187,8 @@ export function renderGamePage(root) {
       });
     });
     document.getElementById('btn-find-match')?.addEventListener('click', joinQueue);
-    document.getElementById('btn-cancel-queue')?.addEventListener('click', leaveQueue);
+    document.getElementById('btn-cancel-queue')?.addEventListener('click', cancelQueue);
     document.getElementById('btn-rematch')?.addEventListener('click', () => {
-      teardownChannels();
       state = 'idle';
       match = null;
       lastChoice = null;
@@ -211,112 +197,146 @@ export function renderGamePage(root) {
       render();
     });
     root.querySelectorAll('.hand-btn').forEach((btn) => {
-      btn.addEventListener('click', () => playHand(btn.dataset.hand));
+      btn.addEventListener('click', () => playRound(btn.dataset.hand));
     });
   }
 
-  /* ------------------------------------------------------------ Matchmaking */
+  /* ---------------------------------------------------------- Matchmaking */
 
   async function joinQueue() {
     state = 'searching';
     render();
     try {
-      const { data, error } = await supabase.rpc('join_matchmaking_queue', {
+      const { data: ticket, error } = await supabase.rpc('join_matchmaking_queue', {
         p_mode_code: selectedMode,
         p_is_ranked: true,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw error;
 
-      queueTicketId = data.id;
-      if (data.status === 'matched' && data.match_id) {
-        await enterMatch(data.match_id);
+      if (ticket.status === 'matched' && ticket.match_id) {
+        await enterMatch(ticket.match_id);
       } else {
-        subscribeToQueueTicket(data.id);
+        subscribeToQueueTicket(ticket.id);
       }
     } catch (err) {
-      toast(err.message || 'یافتن حریف ناموفق بود', 'error');
+      toast(err.message || 'خطا در جستجوی حریف', 'error');
       state = 'idle';
       render();
     }
   }
 
   function subscribeToQueueTicket(ticketId) {
-    teardownQueueChannel();
+    queueChannel?.unsubscribe();
+
+    // Explicitly (re)apply the current session's access token to the realtime
+    // connection before subscribing. In some client-SDK/session-timing edge
+    // cases the websocket auth can lag behind a fresh sign-in, which silently
+    // blocks postgres_changes delivery for RLS-protected tables like this one.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.access_token) {
+        supabase.realtime.setAuth(data.session.access_token);
+      }
+    });
+
     queueChannel = supabase
-      .channel(`queue-ticket-${ticketId}`)
+      .channel(`queue:${ticketId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'matchmaking_queue', filter: `id=eq.${ticketId}` },
-        async (payload) => {
-          if (payload.new.status === 'matched' && payload.new.match_id) {
-            teardownQueueChannel();
-            await enterMatch(payload.new.match_id);
+        (payload) => {
+          const row = payload.new;
+          if (row.status === 'matched' && row.match_id) {
+            stopQueuePolling();
+            queueChannel?.unsubscribe();
+            queueChannel = null;
+            enterMatch(row.match_id);
           }
         }
       )
       .subscribe();
+
+    // Fallback: if realtime ever fails to deliver the UPDATE (dropped
+    // connection, auth race, etc.), a lightweight poll still finds the match
+    // within ~2s instead of leaving the player stuck on "finding opponent"
+    // forever.
+    startQueuePolling(ticketId);
   }
 
-  async function leaveQueue() {
-    teardownQueueChannel();
+  let queuePollInterval = null;
+  function startQueuePolling(ticketId) {
+    stopQueuePolling();
+    queuePollInterval = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('matchmaking_queue')
+        .select('status, match_id')
+        .eq('id', ticketId)
+        .single();
+      if (!error && data?.status === 'matched' && data.match_id) {
+        stopQueuePolling();
+        queueChannel?.unsubscribe();
+        queueChannel = null;
+        enterMatch(data.match_id);
+      }
+    }, 2000);
+  }
+  function stopQueuePolling() {
+    if (queuePollInterval) {
+      clearInterval(queuePollInterval);
+      queuePollInterval = null;
+    }
+  }
+
+  async function cancelQueue() {
+    stopQueuePolling();
+    queueChannel?.unsubscribe();
+    queueChannel = null;
     try {
       await supabase.rpc('leave_matchmaking_queue', { p_mode_code: selectedMode, p_is_ranked: true });
     } catch {
-      /* best-effort */
+      /* best-effort — the queue row will simply sit unmatched otherwise */
     }
     state = 'idle';
     render();
   }
 
-  function teardownQueueChannel() {
-    if (queueChannel) {
-      supabase.removeChannel(queueChannel);
-      queueChannel = null;
-    }
-  }
-
-  /* ------------------------------------------------------------------ Match */
+  /* --------------------------------------------------------------- Match */
 
   async function enterMatch(matchId) {
     const { data: participants, error } = await supabase
       .from('match_participants')
       .select('user_id, users(display_name)')
       .eq('match_id', matchId);
-    if (error) {
-      toast('خطا در بارگذاری بازی: ' + error.message, 'error');
+    if (error || !participants) {
+      toast('خطا در بارگذاری اطلاعات مسابقه', 'error');
       state = 'idle';
       render();
       return;
     }
-
     const opponentRow = participants.find((p) => p.user_id !== AuthStore.user.id);
-    const { data: myBalance } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
+
+    const { data: myUserRow } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
 
     match = {
       matchId,
-      opponentId: opponentRow?.user_id,
-      opponentName: opponentRow?.users?.display_name || 'حریف',
-      scores: { [AuthStore.user.id]: 0, [opponentRow?.user_id]: 0 },
-      mode: selectedMode,
-      coinsBefore: myBalance?.coins ?? 0,
-      xpBefore: myBalance?.xp ?? 0,
+      opponent: { id: opponentRow.user_id, displayName: opponentRow.users?.display_name || 'حریف' },
+      scores: {},
+      mode: 'classic',
+      roundNumber: 1,
+      coinsBefore: myUserRow?.coins ?? AuthStore.user.coins ?? 0,
+      xpBefore: myUserRow?.xp ?? AuthStore.user.xp ?? 0,
     };
     lastChoice = null;
     roundFlash = null;
-    state = 'starting';
+    processedRoundNumbers = new Set();
     subscribeToMatch(matchId);
+    state = 'starting';
     runStartingCountdown();
   }
 
   function subscribeToMatch(matchId) {
-    teardownMatchChannel();
+    matchChannel?.unsubscribe();
     matchChannel = supabase
-      .channel(`match-${matchId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'match_rounds', filter: `match_id=eq.${matchId}` },
-        (payload) => handleRoundResult(payload.new)
-      )
+      .channel(`match:${matchId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
@@ -325,18 +345,71 @@ export function renderGamePage(root) {
         }
       )
       .subscribe();
+
+    roundsChannel?.unsubscribe();
+    roundsChannel = supabase
+      .channel(`match-rounds:${matchId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'match_rounds', filter: `match_id=eq.${matchId}` },
+        (payload) => handleRoundResolved(payload.new)
+      )
+      .subscribe();
   }
 
-  function teardownMatchChannel() {
-    if (matchChannel) {
-      supabase.removeChannel(matchChannel);
-      matchChannel = null;
+  async function handleRoundResolved(roundRow) {
+    if (processedRoundNumbers.has(roundRow.round_number)) return;
+    processedRoundNumbers.add(roundRow.round_number);
+
+    const hidden = roundRow.moves?.hidden;
+    const roundWinnerId = roundRow.round_winner_id;
+    const prevYou = match.scores?.[AuthStore.user.id] || 0;
+    const prevOpp = match.scores?.[match.opponent.id] || 0;
+    const newYou = roundWinnerId === AuthStore.user.id ? prevYou + 1 : prevYou;
+    const newOpp = roundWinnerId === match.opponent.id ? prevOpp + 1 : prevOpp;
+    const whoScored = roundWinnerId === AuthStore.user.id ? 'me' : roundWinnerId === match.opponent.id ? 'opp' : null;
+
+    roundFlash = {
+      guessedHand: lastChoice,
+      hidden,
+      correct: lastChoice === hidden,
+      whoScored,
+    };
+    match.scores = { ...match.scores, [AuthStore.user.id]: newYou, [match.opponent.id]: newOpp };
+    match.roundNumber = roundRow.round_number + 1;
+    render();
+    triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
+    setTimeout(() => {
+      if (state !== 'matched') return; // match may have already finished
+      roundFlash = null;
+      lastChoice = null;
+      render();
+    }, 1200);
+  }
+
+  async function handleMatchFinished(matchRow) {
+    matchChannel?.unsubscribe();
+    roundsChannel?.unsubscribe();
+    matchChannel = null;
+    roundsChannel = null;
+
+    const won = matchRow.winner_id === AuthStore.user.id;
+    let coinGain = 0;
+    let xpGain = 0;
+    if (won) {
+      const { data: myUserRow } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
+      if (myUserRow) {
+        coinGain = myUserRow.coins - (match.coinsBefore ?? myUserRow.coins);
+        xpGain = myUserRow.xp - (match.xpBefore ?? myUserRow.xp);
+        AuthStore.user.coins = myUserRow.coins;
+        AuthStore.user.xp = myUserRow.xp;
+      }
     }
-  }
 
-  function teardownChannels() {
-    teardownQueueChannel();
-    teardownMatchChannel();
+    match = { ...match, winnerId: matchRow.winner_id, coinGain, xpGain };
+    state = 'finished';
+    toast(won ? 'پیروزی! 🎉' : 'باخت — دوباره تلاش کنید', won ? 'win' : 'loss');
+    render();
   }
 
   function runStartingCountdown() {
@@ -346,84 +419,32 @@ export function renderGamePage(root) {
       countdown -= 1;
       if (countdown < 0) {
         clearInterval(interval);
-        if (state === 'starting') {
-          state = 'matched';
-          render();
-        }
+        state = 'matched';
+        render();
         return;
       }
       render();
     }, 550);
   }
 
-  async function playHand(hand) {
-    if (lastChoice || roundFlash || !match) return;
+  async function playRound(hand) {
+    if (lastChoice || roundFlash) return;
     lastChoice = hand;
     render();
     const statusEl = document.getElementById('match-status');
     if (statusEl) statusEl.textContent = 'در انتظار حریف…';
 
-    // Round number = rounds already resolved so far + 1 (moves stored in match_rounds).
-    const { count } = await supabase
-      .from('match_rounds')
-      .select('id', { count: 'exact', head: true })
-      .eq('match_id', match.matchId);
-    const roundNumber = (count || 0) + 1;
-
-    const { error } = await supabase.rpc('submit_round_pick', {
-      p_match_id: match.matchId,
-      p_round_number: roundNumber,
-      p_guess: hand,
-    });
-    if (error) {
-      toast(error.message || 'ثبت حرکت ناموفق بود', 'error');
+    try {
+      await supabase.rpc('submit_round_pick', {
+        p_match_id: match.matchId,
+        p_round_number: match.roundNumber,
+        p_guess: hand,
+      });
+    } catch (err) {
+      toast(err.message || 'خطا در ثبت حدس', 'error');
       lastChoice = null;
       render();
     }
-    // Resolution (if both players have now picked) arrives via the
-    // match_rounds Realtime INSERT handled in handleRoundResult — including
-    // for the OTHER player's own submission, since Postgres resolves the
-    // round exactly once and both clients are subscribed to the same row.
-  }
-
-  function handleRoundResult(round) {
-    if (!match || round.match_id !== match.matchId) return;
-    const moves = round.moves || {};
-    const hidden = moves.hidden;
-    const myGuess = moves[AuthStore.user.id];
-    if (!myGuess) return; // shouldn't happen, but guards against a stray event
-
-    const whoScored = round.round_winner_id === AuthStore.user.id ? 'me' : round.round_winner_id === match.opponentId ? 'opp' : null;
-
-    match.scores = { ...match.scores };
-    if (whoScored === 'me') match.scores[AuthStore.user.id] = (match.scores[AuthStore.user.id] || 0) + 1;
-    if (whoScored === 'opp') match.scores[match.opponentId] = (match.scores[match.opponentId] || 0) + 1;
-
-    roundFlash = { guessedHand: lastChoice, hidden, correct: lastChoice === hidden, whoScored };
-    render();
-    triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
-    setTimeout(() => {
-      roundFlash = null;
-      lastChoice = null;
-      if (state === 'matched') render();
-    }, 1200);
-  }
-
-  async function handleMatchFinished(row) {
-    teardownMatchChannel();
-    const won = row.winner_id === AuthStore.user.id;
-    let coinGain = 0, xpGain = 0;
-    if (won) {
-      const { data } = await supabase.from('users').select('coins, xp').eq('id', AuthStore.user.id).single();
-      if (data) {
-        coinGain = Math.max(0, (data.coins ?? 0) - (match.coinsBefore ?? 0));
-        xpGain = Math.max(0, (data.xp ?? 0) - (match.xpBefore ?? 0));
-      }
-    }
-    match = { ...match, winnerId: row.winner_id, coinGain, xpGain };
-    state = 'finished';
-    toast(won ? 'پیروزی! 🎉' : 'باخت — دوباره تلاش کنید', won ? 'success' : 'error');
-    render();
   }
 
   render();
