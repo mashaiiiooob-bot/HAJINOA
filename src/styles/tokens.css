@@ -1,58 +1,21 @@
 /* ==========================================================================
    Design Tokens — دست یا خالی
-   Dark graphite / champagne-gold / arcane-violet competitive system.
+   A living, painterly color language across four moods instead of one flat
+   palette. Every section of the app gets its own emotional register while
+   sharing the same structural system (spacing, radius, motion, layout).
+
+   Themes (applied via a class on a section wrapper, e.g. <body class="theme-tropical">):
+   - theme-tropical (default / dashboard / home)      - teal, coral-pink, violet
+   - theme-sunset   (marketplace / profile)            - peach, magenta, warm violet
+   - theme-garden   (clan / friends / social / chat)   - lime, sunny yellow, green
+   - theme-blaze    (game / matchmaking / tournaments) - amber, orange, red-pink
+
+   No gold. No blue+purple "cyber gaming" cliche. Every hue was picked to
+   feel warm, alive, and a little bit like a painting rather than a dashboard.
    Every component file should reference these variables, never raw hex.
    ========================================================================== */
 :root {
-  /* ---- Core surfaces ---- */
-  --c-bg: #07070a;
-  --c-bg-elevated: #111114;
-  --c-surface: #16161a;
-  --c-surface-hover: #1f1f25;
-  --c-surface-2: #1c1c21;
-  --c-border: rgba(212, 175, 55, 0.14);
-  --c-border-strong: rgba(212, 175, 55, 0.34);
-  --c-hairline: rgba(255, 255, 255, 0.06);
-
-  /* ---- Gold (primary / currency / victory) ---- */
-  --c-gold: #d4af37;
-  --c-gold-light: #f3dd96;
-  --c-gold-dim: #a6822c;
-  --c-gold-glow: rgba(212, 175, 55, 0.24);
-  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
-
-  /* ---- Violet (energy / ranked / intelligence) ---- */
-  --c-purple: #8b5cf6;
-  --c-purple-light: #c4b1ff;
-  --c-purple-dim: #4c2f96;
-  --c-purple-glow: rgba(139, 92, 246, 0.28);
-  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
-  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, var(--c-purple-light) 50%, var(--c-purple) 100%);
-
-  /* ---- Text ---- */
-  --c-text: #f6f4ef;
-  --c-text-muted: #a8a5a3;
-  --c-text-faint: #6e6b6f;
-
-  /* ---- Semantic ---- */
-  --c-success: #3ecf8e;
-  --c-success-glow: rgba(62, 207, 142, 0.22);
-  --c-danger: #f0555c;
-  --c-danger-glow: rgba(240, 85, 92, 0.22);
-  --c-info: #5b9bd5;
-
-  /* ---- Rarity scale (achievements / badges) ---- */
-  --c-rarity-common: #8b8d94;
-  --c-rarity-rare: #5b9bd5;
-  --c-rarity-epic: #8b5cf6;
-  --c-rarity-legendary: #d4af37;
-
-  /* ---- Ember (signature "chance/fate" accent — coin-flip, streaks, celebration) ---- */
-  --c-ember: #ff9a4d;
-  --c-ember-light: #ffc98a;
-  --c-ember-glow: rgba(255, 154, 77, 0.28);
-  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 60%, #d9640f);
-  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+  /* ==== Structural tokens shared by every theme ==== */
 
   /* ---- Typography ---- */
   --font-fa: 'Vazirmatn', system-ui, sans-serif;
@@ -85,24 +48,6 @@
   --r-xl: 28px;
   --r-full: 999px;
 
-  /* ---- Elevation ---- */
-  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.55);
-  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.6);
-  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.5);
-  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
-  --shadow-purple-glow: 0 0 0 1px rgba(139, 92, 246, 0.34), 0 8px 28px var(--c-purple-glow);
-  --shadow-inset-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-ember-glow: 0 0 0 1px rgba(255, 154, 77, 0.3), 0 8px 28px var(--c-ember-glow);
-  --shadow-float: 0 30px 80px -20px rgba(0, 0, 0, 0.65);
-
-  /* ---- Glass ---- */
-  --glass-bg: linear-gradient(180deg, rgba(22, 22, 26, 0.78), rgba(14, 14, 17, 0.86));
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --blur-sm: blur(8px);
-  --blur-md: blur(16px);
-  --blur-lg: blur(28px);
-
   /* ---- Motion ---- */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -126,6 +71,253 @@
   --z-overlay: 900;
   --z-modal: 950;
   --z-toast: 1000;
+
+  /* ==== Default theme: Tropical Dream (dashboard / home / global chrome) ====
+     Deep teal-navy night with electric aqua, coral-pink, and violet flashes
+     - like a warm ocean sunset seen from underwater. */
+  --c-bg: #0b1f26;
+  --c-bg-elevated: #102b33;
+  --c-surface: #143640;
+  --c-surface-hover: #1b4650;
+  --c-surface-2: #163c46;
+  --c-border: rgba(94, 234, 212, 0.16);
+  --c-border-strong: rgba(94, 234, 212, 0.36);
+  --c-hairline: rgba(255, 255, 255, 0.07);
+
+  /* ---- Primary (aqua/teal - action, currency, victory) ---- */
+  --c-gold: #38d9c9;
+  --c-gold-light: #8ff5e6;
+  --c-gold-dim: #1f9f92;
+  --c-gold-glow: rgba(56, 217, 201, 0.28);
+  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+
+  /* ---- Secondary (violet/pink - ranked, intelligence, strategy) ---- */
+  --c-purple: #c084fc;
+  --c-purple-light: #e0b3ff;
+  --c-purple-dim: #8b4fd6;
+  --c-purple-glow: rgba(192, 132, 252, 0.28);
+  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
+  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, #ff8ac0 50%, var(--c-purple) 100%);
+
+  /* ---- Text ---- */
+  --c-text: #f2fbf9;
+  --c-text-muted: #a9c9c4;
+  --c-text-faint: #648783;
+
+  /* ---- Semantic ---- */
+  --c-success: #7ed957;
+  --c-success-glow: rgba(126, 217, 87, 0.24);
+  --c-danger: #ff5f7e;
+  --c-danger-glow: rgba(255, 95, 126, 0.24);
+  --c-info: #5eeaf0;
+
+  /* ---- Rarity scale (achievements / badges) ---- */
+  --c-rarity-common: #8fa8a4;
+  --c-rarity-rare: #5eeaf0;
+  --c-rarity-epic: #c084fc;
+  --c-rarity-legendary: #ff8ac0;
+
+  /* ---- Signature "chance/fate" accent - coin-flip, streaks, celebration ---- */
+  --c-ember: #ff8ac0;
+  --c-ember-light: #ffc3e0;
+  --c-ember-glow: rgba(255, 138, 192, 0.3);
+  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 55%, #ff5f9e);
+  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+
+  /* ---- Elevation ---- */
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(192, 132, 252, 0.36), 0 8px 28px var(--c-purple-glow);
+  --shadow-inset-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-ember-glow: 0 0 0 1px rgba(255, 138, 192, 0.32), 0 8px 28px var(--c-ember-glow);
+  --shadow-float: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
+
+  /* ---- Glass ---- */
+  --glass-bg: linear-gradient(180deg, rgba(20, 54, 64, 0.78), rgba(11, 31, 38, 0.88));
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --blur-sm: blur(8px);
+  --blur-md: blur(16px);
+  --blur-lg: blur(28px);
+}
+
+/* ==========================================================================
+   theme-sunset - Marketplace / Profile / Achievements
+   A warm dusk sky: peach, hot magenta, and a soft warm violet. Feels
+   luxurious and a little nostalgic - right for showing off cosmetics,
+   inventory, and personal progress.
+   ========================================================================== */
+.theme-sunset {
+  --c-bg: #241322;
+  --c-bg-elevated: #331a2f;
+  --c-surface: #3e2039;
+  --c-surface-hover: #4d2846;
+  --c-surface-2: #42233d;
+  --c-border: rgba(255, 158, 122, 0.18);
+  --c-border-strong: rgba(255, 158, 122, 0.4);
+  --c-hairline: rgba(255, 255, 255, 0.07);
+
+  --c-gold: #ff9e7a;
+  --c-gold-light: #ffcaab;
+  --c-gold-dim: #d6693f;
+  --c-gold-glow: rgba(255, 158, 122, 0.3);
+  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+
+  --c-purple: #ff5fa8;
+  --c-purple-light: #ffa0cf;
+  --c-purple-dim: #c23577;
+  --c-purple-glow: rgba(255, 95, 168, 0.3);
+  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
+  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, var(--c-purple-light) 50%, #b478e8 100%);
+
+  --c-text: #fbf1f6;
+  --c-text-muted: #c9a9bd;
+  --c-text-faint: #8a6b80;
+
+  --c-success: #8fd96b;
+  --c-success-glow: rgba(143, 217, 107, 0.24);
+  --c-danger: #ff5670;
+  --c-danger-glow: rgba(255, 86, 112, 0.24);
+  --c-info: #ffb37a;
+
+  --c-rarity-common: #a8919f;
+  --c-rarity-rare: #ffb37a;
+  --c-rarity-epic: #ff5fa8;
+  --c-rarity-legendary: #ffd27a;
+
+  --c-ember: #ffd27a;
+  --c-ember-light: #ffe4ab;
+  --c-ember-glow: rgba(255, 210, 122, 0.32);
+  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 55%, #ff9e7a);
+  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(255, 95, 168, 0.38), 0 8px 28px var(--c-purple-glow);
+  --shadow-ember-glow: 0 0 0 1px rgba(255, 210, 122, 0.34), 0 8px 28px var(--c-ember-glow);
+
+  --glass-bg: linear-gradient(180deg, rgba(62, 32, 57, 0.78), rgba(36, 19, 34, 0.88));
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   theme-garden - Clans / Friends / Social / Chat
+   A sunlit spring garden: fresh lime, warm sunny yellow, and leaf green.
+   Feels welcoming and communal - right for anything about belonging to a
+   group of people.
+   ========================================================================== */
+.theme-garden {
+  --c-bg: #12220f;
+  --c-bg-elevated: #1a3016;
+  --c-surface: #223c1c;
+  --c-surface-hover: #2c4b24;
+  --c-surface-2: #26431f;
+  --c-border: rgba(200, 230, 104, 0.18);
+  --c-border-strong: rgba(200, 230, 104, 0.4);
+  --c-hairline: rgba(255, 255, 255, 0.07);
+
+  --c-gold: #a8e63c;
+  --c-gold-light: #d4f5a0;
+  --c-gold-dim: #6ea51e;
+  --c-gold-glow: rgba(168, 230, 60, 0.28);
+  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+
+  --c-purple: #ffc93c;
+  --c-purple-light: #ffe4a0;
+  --c-purple-dim: #d69a1e;
+  --c-purple-glow: rgba(255, 201, 60, 0.28);
+  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
+  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, #eaf28a 50%, var(--c-purple) 100%);
+
+  --c-text: #f3fbe8;
+  --c-text-muted: #b8cfa4;
+  --c-text-faint: #78916a;
+
+  --c-success: #7ed957;
+  --c-success-glow: rgba(126, 217, 87, 0.24);
+  --c-danger: #ff6b5f;
+  --c-danger-glow: rgba(255, 107, 95, 0.24);
+  --c-info: #5ed9c8;
+
+  --c-rarity-common: #94a888;
+  --c-rarity-rare: #5ed9c8;
+  --c-rarity-epic: #ffc93c;
+  --c-rarity-legendary: #ff9e5f;
+
+  --c-ember: #ff9e5f;
+  --c-ember-light: #ffc394;
+  --c-ember-glow: rgba(255, 158, 95, 0.3);
+  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 55%, #e6733a);
+  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(255, 201, 60, 0.4), 0 8px 28px var(--c-purple-glow);
+  --shadow-ember-glow: 0 0 0 1px rgba(255, 158, 95, 0.34), 0 8px 28px var(--c-ember-glow);
+
+  --glass-bg: linear-gradient(180deg, rgba(34, 60, 28, 0.78), rgba(18, 34, 15, 0.88));
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   theme-blaze - Game / Matchmaking / Tournaments
+   The heat of live competition: amber, blazing orange, and a hot red-pink
+   flash for the win moment. Feels urgent and celebratory - right for the
+   adrenaline of an active match.
+   ========================================================================== */
+.theme-blaze {
+  --c-bg: #241208;
+  --c-bg-elevated: #331b0e;
+  --c-surface: #3d2312;
+  --c-surface-hover: #4d2c16;
+  --c-surface-2: #422714;
+  --c-border: rgba(255, 173, 92, 0.2);
+  --c-border-strong: rgba(255, 173, 92, 0.42);
+  --c-hairline: rgba(255, 255, 255, 0.07);
+
+  --c-gold: #ffad5c;
+  --c-gold-light: #ffd19a;
+  --c-gold-dim: #d97a2e;
+  --c-gold-glow: rgba(255, 173, 92, 0.3);
+  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+
+  --c-purple: #ff5757;
+  --c-purple-light: #ff9494;
+  --c-purple-dim: #d63030;
+  --c-purple-glow: rgba(255, 87, 87, 0.3);
+  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
+  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, #ffd166 50%, var(--c-purple) 100%);
+
+  --c-text: #fff6ee;
+  --c-text-muted: #d4ab8f;
+  --c-text-faint: #93705a;
+
+  --c-success: #8fd957;
+  --c-success-glow: rgba(143, 217, 87, 0.24);
+  --c-danger: #ff5757;
+  --c-danger-glow: rgba(255, 87, 87, 0.26);
+  --c-info: #ffd166;
+
+  --c-rarity-common: #ab9284;
+  --c-rarity-rare: #ffd166;
+  --c-rarity-epic: #ff5757;
+  --c-rarity-legendary: #ff8ac0;
+
+  --c-ember: #ff5757;
+  --c-ember-light: #ff9494;
+  --c-ember-glow: rgba(255, 87, 87, 0.32);
+  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 55%, #d63030);
+  --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
+
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(255, 87, 87, 0.4), 0 8px 28px var(--c-purple-glow);
+  --shadow-ember-glow: 0 0 0 1px rgba(255, 87, 87, 0.36), 0 8px 28px var(--c-ember-glow);
+
+  --glass-bg: linear-gradient(180deg, rgba(61, 35, 18, 0.78), rgba(36, 18, 8, 0.88));
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
