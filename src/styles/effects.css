@@ -63,6 +63,9 @@
   animation: ripple-expand 600ms var(--ease-out-expo);
   pointer-events: none;
 }
+/* theme-blaze is light-mode (see tokens.css) — a white ripple on a
+   near-white card is nearly invisible, so use a dark tint there instead. */
+.theme-blaze .ripple-dot { background: rgba(15, 23, 42, 0.1); }
 @keyframes ripple-expand {
   to { transform: scale(2.6); opacity: 0; }
 }
@@ -75,6 +78,10 @@
   background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.08) 50%, transparent 65%);
   transform: translateX(-120%);
   animation: shimmer-sweep 5.5s ease-in-out infinite;
+}
+/* Same light-mode fix as .ripple-dot above. */
+.theme-blaze .shimmer-sweep::after {
+  background: linear-gradient(100deg, transparent 35%, rgba(124, 58, 237, 0.08) 50%, transparent 65%);
 }
 @keyframes shimmer-sweep {
   0%, 30% { transform: translateX(-120%); }

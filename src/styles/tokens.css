@@ -263,62 +263,78 @@
 
 /* ==========================================================================
    theme-blaze - Game / Matchmaking / Tournaments
-   The heat of live competition: amber, blazing orange, and a hot red-pink
-   flash for the win moment. Feels urgent and celebratory - right for the
-   adrenaline of an active match.
+   LIGHT MODE by explicit request: a soft near-white canvas instead of a dark
+   background, carrying vivid purple + emerald + sky-blue accents so it still
+   reads as premium/gaming rather than a plain white page. Glassmorphic cards
+   (semi-transparent white + blur) keep depth without going dark.
+   Every other theme in this file stays dark — this is the one deliberate
+   exception, scoped to the game/tournament routes only.
    ========================================================================== */
 .theme-blaze {
-  --c-bg: #241208;
-  --c-bg-elevated: #331b0e;
-  --c-surface: #3d2312;
-  --c-surface-hover: #4d2c16;
-  --c-surface-2: #422714;
-  --c-border: rgba(255, 173, 92, 0.2);
-  --c-border-strong: rgba(255, 173, 92, 0.42);
-  --c-hairline: rgba(255, 255, 255, 0.07);
+  --c-bg: #f8fafc;
+  --c-bg-elevated: #ffffff;
+  --c-surface: rgba(255, 255, 255, 0.75);
+  --c-surface-hover: rgba(255, 255, 255, 0.92);
+  --c-surface-2: #ffffff;
+  --c-border: rgba(124, 58, 237, 0.16);
+  --c-border-strong: rgba(124, 58, 237, 0.32);
+  --c-hairline: rgba(15, 23, 42, 0.08);
 
-  --c-gold: #ffad5c;
-  --c-gold-light: #ffd19a;
-  --c-gold-dim: #d97a2e;
-  --c-gold-glow: rgba(255, 173, 92, 0.3);
-  --grad-gold: linear-gradient(135deg, var(--c-gold-light), var(--c-gold) 55%, var(--c-gold-dim));
+  /* Primary action color: vivid purple (was amber/orange in the dark theme) */
+  --c-gold: #7c3aed;
+  --c-gold-light: #a78bfa;
+  --c-gold-dim: #5b21b6;
+  --c-gold-glow: rgba(124, 58, 237, 0.22);
+  --grad-gold: linear-gradient(135deg, #7c3aed, #38bdf8 55%, #10b981);
 
-  --c-purple: #ff5757;
-  --c-purple-light: #ff9494;
-  --c-purple-dim: #d63030;
-  --c-purple-glow: rgba(255, 87, 87, 0.3);
-  --grad-purple: linear-gradient(135deg, var(--c-purple-light), var(--c-purple) 60%, var(--c-purple-dim));
-  --grad-arcane: linear-gradient(135deg, var(--c-gold-light) 0%, #ffd166 50%, var(--c-purple) 100%);
+  /* Secondary: sky blue (was red in the dark theme) */
+  --c-purple: #38bdf8;
+  --c-purple-light: #7dd3fc;
+  --c-purple-dim: #0284c7;
+  --c-purple-glow: rgba(56, 189, 248, 0.22);
+  --grad-purple: linear-gradient(135deg, #7dd3fc, #38bdf8 60%, #0284c7);
+  --grad-arcane: linear-gradient(135deg, #7c3aed 0%, #38bdf8 50%, #10b981 100%);
 
-  --c-text: #fff6ee;
-  --c-text-muted: #d4ab8f;
-  --c-text-faint: #93705a;
+  /* Text: dark-on-light now, inverted from every other (dark) theme */
+  --c-text: #0f172a;
+  --c-text-muted: #475569;
+  --c-text-faint: #94a3b8;
 
-  --c-success: #8fd957;
-  --c-success-glow: rgba(143, 217, 87, 0.24);
-  --c-danger: #ff5757;
-  --c-danger-glow: rgba(255, 87, 87, 0.26);
-  --c-info: #ffd166;
+  --c-success: #10b981;
+  --c-success-glow: rgba(16, 185, 129, 0.18);
+  --c-danger: #ef4444;
+  --c-danger-glow: rgba(239, 68, 68, 0.18);
+  --c-info: #38bdf8;
 
-  --c-rarity-common: #ab9284;
-  --c-rarity-rare: #ffd166;
-  --c-rarity-epic: #ff5757;
-  --c-rarity-legendary: #ff8ac0;
+  --c-rarity-common: #94a3b8;
+  --c-rarity-rare: #38bdf8;
+  --c-rarity-epic: #7c3aed;
+  --c-rarity-legendary: #10b981;
 
-  --c-ember: #ff5757;
-  --c-ember-light: #ff9494;
-  --c-ember-glow: rgba(255, 87, 87, 0.32);
-  --grad-ember: linear-gradient(135deg, var(--c-ember-light), var(--c-ember) 55%, #d63030);
+  /* Signature "chance/fate" accent: emerald (was red in the dark theme) */
+  --c-ember: #10b981;
+  --c-ember-light: #6ee7b7;
+  --c-ember-glow: rgba(16, 185, 129, 0.24);
+  --grad-ember: linear-gradient(135deg, #6ee7b7, #10b981 55%, #059669);
   --grad-fate: conic-gradient(from 180deg, var(--c-gold), var(--c-ember), var(--c-purple), var(--c-gold));
 
-  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 40px rgba(0, 0, 0, 0.45);
-  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 28px var(--c-gold-glow);
-  --shadow-purple-glow: 0 0 0 1px rgba(255, 87, 87, 0.4), 0 8px 28px var(--c-purple-glow);
-  --shadow-ember-glow: 0 0 0 1px rgba(255, 87, 87, 0.36), 0 8px 28px var(--c-ember-glow);
+  /* Shadows: soft, colored, low-opacity — light-mode elevation instead of
+     the deep black shadows every dark theme uses. */
+  --shadow-1: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 8px 28px rgba(15, 23, 42, 0.08);
+  --shadow-3: 0 20px 60px rgba(15, 23, 42, 0.1);
+  --shadow-gold: 0 0 0 1px var(--c-border), 0 12px 32px rgba(124, 58, 237, 0.14);
+  --shadow-gold-glow: 0 0 0 1px var(--c-border-strong), 0 8px 24px var(--c-gold-glow);
+  --shadow-purple-glow: 0 0 0 1px rgba(56, 189, 248, 0.3), 0 8px 24px var(--c-purple-glow);
+  --shadow-ember-glow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 8px 24px var(--c-ember-glow);
+  --shadow-float: 0 24px 64px -16px rgba(15, 23, 42, 0.14);
 
-  --glass-bg: linear-gradient(180deg, rgba(61, 35, 18, 0.78), rgba(36, 18, 8, 0.88));
-  --glass-border: rgba(255, 255, 255, 0.1);
+  /* Glass: white-tinted blur instead of dark-tinted, so cards read as
+     frosted glass on a light canvas rather than a dark pane. */
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.92));
+  --glass-border: rgba(15, 23, 42, 0.08);
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
