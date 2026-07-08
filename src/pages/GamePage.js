@@ -17,6 +17,7 @@ export function renderGamePage(root) {
   let processedRoundNumbers = new Set();
   let matchPollInterval = null;
   let lastKnownRoundCount = 0;
+  let choiceMadeAt = null;
 
   function render() {
     root.innerHTML = `
@@ -194,6 +195,7 @@ export function renderGamePage(root) {
       state = 'idle';
       match = null;
       lastChoice = null;
+      choiceMadeAt = null;
       roundFlash = null;
       processedRoundNumbers = new Set();
       render();
@@ -395,6 +397,18 @@ export function renderGamePage(root) {
           handleRoundResolved({ round_number: r.round_number, moves: r.moves, round_winner_id: r.round_winner_id });
         }
       }
+
+      // Stuck-state recovery: if a choice was made 6+ seconds ago and we're
+      // still waiting (no new round appeared above), something silently
+      // failed. Clear the local choice so the player can act again — worst
+      // case this costs one wasted round rather than leaving them frozen
+      // for the rest of the match.
+      if (lastChoice && !roundFlash && choiceMadeAt && Date.now() - choiceMadeAt > 6000) {
+        lastChoice = null;
+        choiceMadeAt = null;
+        toast('اتصال کند بود — دوباره تلاش کنید', 'info');
+        render();
+      }
     }, 500);
   }
   function stopMatchPolling() {
@@ -426,12 +440,14 @@ export function renderGamePage(root) {
     match.roundNumber = Math.max(match.roundNumber, roundRow.round_number + 1);
     render();
     triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
-    setTimeout(() => {
+    const clearFlash = () => {
       if (state !== 'matched') return; // match may have already finished
       roundFlash = null;
       lastChoice = null;
+      choiceMadeAt = null;
       render();
-    }, 1200);
+    };
+    setTimeout(clearFlash, 1200);
   }
 
   async function handleMatchFinished(matchRow) {
@@ -482,19 +498,35 @@ export function renderGamePage(root) {
   async function playRound(hand) {
     if (lastChoice || roundFlash) return;
     lastChoice = hand;
+    choiceMadeAt = Date.now();
     render();
     const statusEl = document.getElementById('match-status');
     if (statusEl) statusEl.textContent = 'در انتظار حریف…';
 
     try {
+      // Re-derive the true current round number from the database instead
+      // of trusting the client's local match.roundNumber — if that ever
+      // desyncs (e.g. a stale closure, a race between polling and a
+      // render), submitting the wrong round_number gets silently swallowed
+      // by ON CONFLICT DO NOTHING server-side, leaving the player stuck
+      // forever with no error. Asking the DB "what's the next round?" right
+      // before submitting removes that whole failure class.
+      const { count } = await supabase
+        .from('match_rounds')
+        .select('id', { count: 'exact', head: true })
+        .eq('match_id', match.matchId);
+      const currentRoundNumber = (count ?? 0) + 1;
+      match.roundNumber = currentRoundNumber;
+
       await supabase.rpc('submit_round_pick', {
         p_match_id: match.matchId,
-        p_round_number: match.roundNumber,
+        p_round_number: currentRoundNumber,
         p_guess: hand,
       });
     } catch (err) {
       toast(err.message || 'خطا در ثبت حدس', 'error');
       lastChoice = null;
+      choiceMadeAt = null;
       render();
     }
   }
