@@ -15,6 +15,8 @@ export function renderGamePage(root) {
   let matchChannel = null;
   let roundsChannel = null;
   let processedRoundNumbers = new Set();
+  let matchPollInterval = null;
+  let lastKnownRoundCount = 0;
 
   function render() {
     root.innerHTML = `
@@ -225,18 +227,16 @@ export function renderGamePage(root) {
     }
   }
 
+  async function ensureRealtimeAuth() {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      supabase.realtime.setAuth(data.session.access_token);
+    }
+  }
+
   function subscribeToQueueTicket(ticketId) {
     queueChannel?.unsubscribe();
-
-    // Explicitly (re)apply the current session's access token to the realtime
-    // connection before subscribing. In some client-SDK/session-timing edge
-    // cases the websocket auth can lag behind a fresh sign-in, which silently
-    // blocks postgres_changes delivery for RLS-protected tables like this one.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session?.access_token) {
-        supabase.realtime.setAuth(data.session.access_token);
-      }
-    });
+    ensureRealtimeAuth();
 
     queueChannel = supabase
       .channel(`queue:${ticketId}`)
@@ -277,7 +277,7 @@ export function renderGamePage(root) {
         queueChannel = null;
         enterMatch(data.match_id);
       }
-    }, 2000);
+    }, 500);
   }
   function stopQueuePolling() {
     if (queuePollInterval) {
@@ -328,12 +328,15 @@ export function renderGamePage(root) {
     lastChoice = null;
     roundFlash = null;
     processedRoundNumbers = new Set();
+    lastKnownRoundCount = 0;
     subscribeToMatch(matchId);
     state = 'starting';
     runStartingCountdown();
   }
 
   function subscribeToMatch(matchId) {
+    ensureRealtimeAuth();
+
     matchChannel?.unsubscribe();
     matchChannel = supabase
       .channel(`match:${matchId}`)
@@ -355,6 +358,50 @@ export function renderGamePage(root) {
         (payload) => handleRoundResolved(payload.new)
       )
       .subscribe();
+
+    // Fallback: realtime for matchmaking_queue previously silently stopped
+    // delivering events after being (re)added to the publication — the same
+    // class of failure can happen here (dropped websocket, auth timing,
+    // browser tab throttling, etc.). Poll every 500ms for any round this
+    // client hasn't processed yet, and for the match having finished, so
+    // play never gets permanently stuck even if the realtime channel goes
+    // silent — and stays responsive/near-instant even when it does.
+    startMatchPolling(matchId);
+  }
+
+  function startMatchPolling(matchId) {
+    stopMatchPolling();
+    matchPollInterval = setInterval(async () => {
+      // Check for match completion first.
+      const { data: matchRow } = await supabase
+        .from('matches')
+        .select('status, winner_id')
+        .eq('id', matchId)
+        .single();
+      if (matchRow?.status === 'completed') {
+        handleMatchFinished(matchRow);
+        return;
+      }
+
+      // Check for any round this client hasn't rendered yet.
+      const { data: rounds } = await supabase
+        .from('match_rounds')
+        .select('round_number, moves, round_winner_id')
+        .eq('match_id', matchId)
+        .order('round_number', { ascending: true });
+      if (!rounds) return;
+      for (const r of rounds) {
+        if (!processedRoundNumbers.has(r.round_number)) {
+          handleRoundResolved({ round_number: r.round_number, moves: r.moves, round_winner_id: r.round_winner_id });
+        }
+      }
+    }, 500);
+  }
+  function stopMatchPolling() {
+    if (matchPollInterval) {
+      clearInterval(matchPollInterval);
+      matchPollInterval = null;
+    }
   }
 
   async function handleRoundResolved(roundRow) {
@@ -376,7 +423,7 @@ export function renderGamePage(root) {
       whoScored,
     };
     match.scores = { ...match.scores, [AuthStore.user.id]: newYou, [match.opponent.id]: newOpp };
-    match.roundNumber = roundRow.round_number + 1;
+    match.roundNumber = Math.max(match.roundNumber, roundRow.round_number + 1);
     render();
     triggerScreenFlash(roundFlash.correct ? 'hit' : 'miss');
     setTimeout(() => {
@@ -388,6 +435,11 @@ export function renderGamePage(root) {
   }
 
   async function handleMatchFinished(matchRow) {
+    // Guard against double-handling: both the realtime channel and the
+    // polling fallback can independently detect the finish.
+    if (state === 'finished') return;
+
+    stopMatchPolling();
     matchChannel?.unsubscribe();
     roundsChannel?.unsubscribe();
     matchChannel = null;
