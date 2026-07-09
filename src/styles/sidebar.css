@@ -10,11 +10,11 @@
   flex-shrink: 0;
   z-index: var(--z-sidebar);
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(17, 17, 20, 0.92), rgba(10, 10, 13, 0.96));
-  border-inline-start: 1px solid var(--c-hairline);
+  background: var(--glass-bg);
+  border-inline-start: 1px solid var(--glass-border);
   backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
   padding: var(--sp-5) var(--sp-3);
-  transition: width var(--dur-slow) var(--ease-out-expo);
+  transition: width var(--dur-slow) var(--ease-out-expo), background var(--dur-base) var(--ease);
 }
 #app-sidebar.visible { display: flex; }
 #app-sidebar.collapsed { width: var(--sidebar-w-collapsed); }
@@ -146,9 +146,9 @@
     z-index: var(--z-sidebar);
     height: var(--mobile-nav-h, 64px);
     padding-bottom: env(safe-area-inset-bottom, 0);
-    background: rgba(10, 10, 13, 0.92);
+    background: var(--glass-bg);
     backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
-    border-top: 1px solid var(--c-hairline);
+    border-top: 1px solid var(--glass-border);
   }
 
   /* Push page content above the fixed bar so it never hides the last widget. */

@@ -5,10 +5,11 @@
 #app-header {
   position: sticky; top: 0; z-index: var(--z-header);
   height: var(--header-h);
-  background: rgba(7, 7, 10, 0.78);
+  background: var(--glass-bg);
   backdrop-filter: var(--blur-md); -webkit-backdrop-filter: var(--blur-md);
-  border-bottom: 1px solid var(--c-hairline);
+  border-bottom: 1px solid var(--glass-border);
   display: none;
+  transition: background var(--dur-base) var(--ease);
 }
 .header-inner {
   height: 100%;

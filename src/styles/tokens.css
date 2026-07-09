@@ -138,9 +138,9 @@
   /* ---- Glass ---- */
   --glass-bg: linear-gradient(180deg, rgba(20, 54, 64, 0.78), rgba(11, 31, 38, 0.88));
   --glass-border: rgba(255, 255, 255, 0.09);
-  --blur-sm: blur(8px);
-  --blur-md: blur(16px);
-  --blur-lg: blur(28px);
+  --blur-sm: saturate(180%) blur(8px);
+  --blur-md: saturate(180%) blur(16px);
+  --blur-lg: saturate(180%) blur(28px);
 }
 
 /* ==========================================================================
