@@ -15,6 +15,8 @@ import { renderChat } from './pages/ChatPage.js';
 import { initNotificationPanel, attachSocketListener } from './components/NotificationPanel.js';
 import { renderAdmin } from './pages/AdminPage.js';
 import { renderProfilePage } from './pages/ProfilePage.js';
+import { renderHokmLobby } from './pages/HokmLobby.js';
+import { renderHokmTable } from './pages/HokmTable.js';
 import { registerRoute, setRouteGuard, startRouter, navigate } from './router.js';
 import { toast } from './components/Toast.js';
 import { initRipples, initSpotlight, initMagnetic } from './utils/effects.js';
@@ -82,6 +84,8 @@ function boot() {
   registerRoute('/friends', renderFriends);
   registerRoute('/chat', renderChat);
   registerRoute('/profile', renderProfilePage);
+  registerRoute('/hokm', renderHokmLobby);
+  registerRoute('/hokm/:roomId', (root, params) => renderHokmTable(root, params.roomId));
   registerRoute('/admin', renderAdmin);
   registerRoute('/404', (r) => {
     r.innerHTML = `<div class="container page-pad"><div class="empty-state"><span class="empty-icon">🔍</span><p>صفحه یافت نشد</p></div></div>`;

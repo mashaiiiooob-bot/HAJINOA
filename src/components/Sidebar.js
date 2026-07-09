@@ -3,6 +3,7 @@ import { formatNumber, escapeHtml } from '../utils/format.js';
 const NAV_ITEMS = [
   { route: '/', label: 'خانه', icon: 'home' },
   { route: '/game', label: 'بازی', icon: 'play' },
+  { route: '/hokm', label: 'حکم', icon: 'cards' },
   { route: '/tournaments', label: 'مسابقات', icon: 'medal' },
   { route: '/marketplace', label: 'بازار', icon: 'cart' },
   { route: '/clan', label: 'کلن', icon: 'shield' },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
 const ICONS = {
   home: '<path d="M4 11.5 12 5l8 6.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1v-9"/>',
   play: '<path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z"/>',
+  cards: '<rect x="4" y="7" width="10" height="14" rx="1.5" transform="rotate(-8 9 14)"/><rect x="10" y="5" width="10" height="14" rx="1.5"/>',
   trophy: '<path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5a2 2 0 0 0 2 4"/><path d="M16 5h3a2 2 0 0 1-2 4"/><path d="M10 13v3M14 13v3"/><path d="M8 20h8M9 16.5h6l.6 3.5H8.4l.6-3.5Z"/>',
   user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5"/>',
   medal: '<circle cx="12" cy="15" r="5"/><path d="M12 12.5 13 16h-2l1-3.5Z"/><path d="M8 4h3l1 6.5M16 4h-3l-1 6.5"/>',
