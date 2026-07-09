@@ -502,7 +502,15 @@ export async function renderHokmTable(root, roomId) {
   try {
     await loadRoom();
     if (room.status === 'active') {
-      await supabase.rpc('rejoin_hokm_room', { p_room_id: roomId }).catch(() => {});
+      // FIX: supabase.rpc(...).catch() is not guaranteed to exist directly
+      // on the returned PostgrestFilterBuilder across all @supabase/supabase-js
+      // versions (this project imports it unpinned from esm.sh). Destructure
+      // { error } from the awaited result instead, matching every other rpc()
+      // call in this file, rather than relying on .catch() being chainable.
+      const { error: rejoinError } = await supabase.rpc('rejoin_hokm_room', { p_room_id: roomId });
+      if (rejoinError) {
+        // Best-effort — a failed rejoin ping shouldn't block viewing the room.
+      }
     }
   } catch (err) {
     toast(err.message || 'خطا در بارگذاری اتاق', 'error');
