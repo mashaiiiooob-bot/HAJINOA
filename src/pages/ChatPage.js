@@ -138,5 +138,9 @@ export async function renderChat(root) {
   }
 
   subscribeRealtime();
+
+  return function teardown() {
+    if (channel) supabase.removeChannel(channel);
+  };
 }
 

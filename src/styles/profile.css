@@ -113,3 +113,11 @@
   .match-history-row { grid-template-columns: auto 1fr auto; }
   .mh-duration, .mh-time { display: none; }
 }
+
+/* ---- Account settings (rename + logout) ---- */
+.account-settings-form { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; }
+.account-settings-form .field { flex: 1; min-width: 200px; }
+@media (max-width: 480px) {
+  .account-settings-form { flex-direction: column; align-items: stretch; }
+  .account-settings-form button { width: 100%; }
+}

@@ -124,6 +124,8 @@ export function renderGamePage(root) {
           <div class="hand-choices">
             ${handButton('left', '✋ چپ')}${handButton('right', '🤚 راست')}
           </div>
+
+          <button class="btn btn-ghost btn-sm" id="btn-forfeit-match" style="margin-top:var(--sp-4)">ترک بازی</button>
         </div>
       `;
     }
@@ -203,6 +205,21 @@ export function renderGamePage(root) {
     root.querySelectorAll('.hand-btn').forEach((btn) => {
       btn.addEventListener('click', () => playRound(btn.dataset.hand));
     });
+    document.getElementById('btn-forfeit-match')?.addEventListener('click', forfeitMatch);
+  }
+
+  async function forfeitMatch() {
+    if (!match?.matchId) return;
+    if (!confirm('آیا از ترک بازی مطمئن هستید؟ این مسابقه به‌عنوان باخت شما ثبت می‌شود.')) return;
+    try {
+      const { error } = await supabase.rpc('forfeit_match', { p_match_id: match.matchId });
+      if (error) throw new Error(error.message);
+    } catch (err) {
+      toast(err.message || 'ترک بازی ناموفق بود', 'error');
+    }
+    // The 'matches' UPDATE subscription already handles transitioning to the
+    // 'finished' state once status flips to completed — no need to duplicate
+    // that logic here.
   }
 
   /* ---------------------------------------------------------- Matchmaking */
@@ -532,4 +549,10 @@ export function renderGamePage(root) {
   }
 
   render();
+
+  return function teardown() {
+    if (queueChannel) supabase.removeChannel(queueChannel);
+    if (matchChannel) supabase.removeChannel(matchChannel);
+    if (roundsChannel) supabase.removeChannel(roundsChannel);
+  };
 }

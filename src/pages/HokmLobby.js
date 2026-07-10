@@ -198,7 +198,7 @@ export async function renderHokmLobby(root) {
       const { data, error } = await supabase.rpc('join_hokm_matchmaking');
       if (error) throw new Error(error.message);
       queueTicketId = data[0].ticket_id;
-      if (data[0].status === 'matched' && data[0].room_id) {
+      if (data[0].ticket_status === 'matched' && data[0].room_id) {
         navigate(`/hokm/${data[0].room_id}`);
         return;
       }
@@ -254,4 +254,8 @@ export async function renderHokmLobby(root) {
   updateTabButtons();
   if (await checkActiveRoom()) return;
   renderContent();
+
+  return function teardown() {
+    queueChannel?.unsubscribe();
+  };
 }

@@ -348,6 +348,10 @@ export async function renderHokmTable(root, roomId) {
             )
             .join('')}
         </div>
+
+        <div style="text-align:center">
+          <button class="btn btn-ghost btn-sm" id="btn-forfeit-hokm">تسلیم و ترک بازی</button>
+        </div>
       </div>
     `;
   }
@@ -443,6 +447,7 @@ export async function renderHokmTable(root, roomId) {
 
   function bindEvents() {
     document.getElementById('btn-leave-hokm-room')?.addEventListener('click', leaveRoom);
+    document.getElementById('btn-forfeit-hokm')?.addEventListener('click', forfeitHokm);
     document.getElementById('btn-back-to-hokm-lobby')?.addEventListener('click', () => navigate('/hokm'));
     document.querySelectorAll('[data-trump]').forEach((btn) => {
       btn.addEventListener('click', () => chooseTrump(btn.dataset.trump));
@@ -496,6 +501,18 @@ export async function renderHokmTable(root, roomId) {
     }
     teardown();
     navigate('/hokm');
+  }
+
+  async function forfeitHokm() {
+    if (!confirm('آیا از تسلیم شدن مطمئن هستید؟ تیم شما این مسابقه را می‌بازد.')) return;
+    try {
+      const { error } = await supabase.rpc('forfeit_hokm_room', { p_room_id: roomId });
+      if (error) throw new Error(error.message);
+    } catch (err) {
+      toast(err.message || 'تسلیم ناموفق بود', 'error');
+    }
+    // room's realtime UPDATE subscription (handleRoomChange) picks up the
+    // status flip to 'completed' and re-renders into matchCompleteTemplate.
   }
 
   render();

@@ -1,6 +1,7 @@
 const routes = new Map();
 let rootEl = null;
 let guard = null;
+let currentTeardown = null;
 
 /* Maps each route to one of four color moods (see tokens.css):
    - theme-tropical (default) — dashboard, home, leaderboard
@@ -87,7 +88,18 @@ async function render() {
   const { handler, params } = matchRoute(path);
   const finalHandler = handler || routes.get('/404');
   if (!finalHandler) return;
-  await finalHandler(rootEl, params);
+
+  if (typeof currentTeardown === 'function') {
+    try {
+      currentTeardown();
+    } catch {
+      /* best-effort cleanup — a failing teardown shouldn't block navigation */
+    }
+    currentTeardown = null;
+  }
+
+  const result = await finalHandler(rootEl, params);
+  if (typeof result === 'function') currentTeardown = result;
   // restart the fade/rise entrance animation on every navigation
   requestAnimationFrame(() => {
     rootEl?.classList.remove('route-enter');

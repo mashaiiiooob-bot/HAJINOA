@@ -525,4 +525,6 @@ export async function renderClans(root) {
   shell();
   await loadInitial();
   render();
+
+  return teardownChannel;
 }

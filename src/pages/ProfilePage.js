@@ -3,6 +3,8 @@ import { AuthStore } from '../services/authStore.js';
 import { formatNumber, escapeHtml, relativeTime } from '../utils/format.js';
 import { animateCounter } from '../utils/effects.js';
 import { getMatchHistory } from '../utils/sampleData.js';
+import { navigate } from '../router.js';
+import { toast } from '../components/Toast.js';
 
 /**
  * Competitive player profile. Identity (level/xp/coins) comes from AuthStore.
@@ -25,6 +27,7 @@ export async function renderProfilePage(root) {
   });
 
   bindAvatarUpload(root, user);
+  bindAccountSettings(root, user);
 }
 
 async function loadStats(user) {
@@ -111,6 +114,55 @@ async function loadAchievements(user) {
   });
 }
 
+function bindAccountSettings(root, user) {
+  const renameForm = root.querySelector('#rename-form');
+  renameForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = root.querySelector('#rename-input');
+    const newName = input.value.trim();
+    if (!newName || newName === user.displayName) return;
+
+    const btn = renameForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'در حال ذخیره…';
+    try {
+      const { error } = await supabase.rpc('update_my_display_name', { p_display_name: newName });
+      if (error) throw new Error(error.message);
+      user.displayName = newName;
+      AuthStore.setUser({ ...user });
+      toast('نام نمایشی با موفقیت تغییر کرد', 'success');
+      root.querySelector('.profile-name').textContent = newName;
+    } catch (err) {
+      toast(err.message || 'تغییر نام ناموفق بود', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'ذخیره';
+    }
+  });
+
+  root.querySelector('#btn-logout')?.addEventListener('click', async () => {
+    if (!confirm('آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟')) return;
+    await AuthStore.logout();
+    navigate('/login');
+  });
+}
+
+function accountSettingsSection(user) {
+  return `
+    <section class="card widget-card span-12">
+      <div class="widget-title"><h3>تنظیمات حساب</h3></div>
+      <form class="account-settings-form" id="rename-form">
+        <div class="field" style="flex:1">
+          <label for="rename-input">نام نمایشی</label>
+          <input id="rename-input" class="mp-search" maxlength="60" value="${escapeHtml(user?.displayName || '')}" />
+        </div>
+        <button class="btn btn-primary" type="submit">ذخیره</button>
+      </form>
+      <button class="btn btn-secondary btn-block" id="btn-logout" style="margin-top:var(--sp-4)">خروج از حساب کاربری</button>
+    </section>
+  `;
+}
+
 function bindAvatarUpload(root, user) {
   const input = root.querySelector('#avatar-file-input');
   if (!input || !user?.id) return;
@@ -181,6 +233,8 @@ function template(user, stats, matches, achievements) {
           </div>
           ${achievementWall(achievements)}
         </section>
+
+        ${accountSettingsSection(user)}
       </div>
     </div>
   `;
