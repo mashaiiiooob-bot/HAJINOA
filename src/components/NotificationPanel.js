@@ -4,22 +4,37 @@ import { toast } from './Toast.js';
 import { escapeHtml, relativeTime } from '../utils/format.js';
 import { navigate } from '../router.js';
 
+const NOTIF_ICONS = {
+  handshake: '<circle cx="9" cy="8" r="3"/><path d="M2.5 19c1-3 3.3-4.6 6.5-4.6s5.5 1.6 6.5 4.6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.6c2.4.3 4 1.8 4.8 4.4"/>',
+  check: '<path d="M5 12.5 10 17l9-10"/>',
+  shield: '<path d="M12 3.5 5 6v5.5c0 4.2 3 7.3 7 9 4-1.7 7-4.8 7-9V6l-7-2.5Z"/>',
+  users: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M13.5 14.6c1.9.3 3.7 1.7 4.5 4.4"/>',
+  exit: '<path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M15 16l5-4-5-4M20 12H9"/>',
+  star: '<path d="M12 3.5 14.5 9l6 .8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 6-.8L12 3.5Z"/>',
+  crown: '<path d="M4 8l4 3 4-6 4 6 4-3-1.5 10h-13L4 8Z"/><path d="M6.5 18h11"/>',
+  mail: '<path d="M4 6h16v12H4V6Z"/><path d="M4 6l8 7 8-7"/>',
+  bell: '<path d="M6 9a6 6 0 0 1 12 0v5l1.6 2.5H4.4L6 14V9Z"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0"/>',
+};
+function notifIcon(name) {
+  return `<svg class="notif-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NOTIF_ICONS[name] || NOTIF_ICONS.bell}</svg>`;
+}
+
 const TYPE_META = {
-  friend_request: { icon: '🤝', label: (p) => `${p.fromDisplayName || 'یک کاربر'} برای شما درخواست دوستی فرستاد` },
-  friend_accepted: { icon: '✅', label: (p) => `${p.byDisplayName || 'یک کاربر'} درخواست دوستی شما را پذیرفت` },
-  clan_invite: { icon: '🛡️', label: (p) => `به کلن ${p.clanName || ''} دعوت شدید` },
-  clan_join: { icon: '👥', label: () => `یک عضو جدید به کلن شما پیوست` },
-  clan_kicked: { icon: '🚪', label: (p) => `از کلن ${p.clanName || ''} اخراج شدید` },
-  clan_promotion: { icon: '⭐', label: (p) => `نقش شما در کلن ${p.clanName || ''} ارتقا یافت` },
-  clan_ownership_transferred: { icon: '👑', label: () => 'مالکیت کلن به شما منتقل شد' },
-  direct_message: { icon: '✉️', label: (p) => `پیام جدید: ${p.preview || ''}` },
+  friend_request: { icon: notifIcon('handshake'), label: (p) => `${p.fromDisplayName || 'یک کاربر'} برای شما درخواست دوستی فرستاد` },
+  friend_accepted: { icon: notifIcon('check'), label: (p) => `${p.byDisplayName || 'یک کاربر'} درخواست دوستی شما را پذیرفت` },
+  clan_invite: { icon: notifIcon('shield'), label: (p) => `به کلن ${p.clanName || ''} دعوت شدید` },
+  clan_join: { icon: notifIcon('users'), label: () => `یک عضو جدید به کلن شما پیوست` },
+  clan_kicked: { icon: notifIcon('exit'), label: (p) => `از کلن ${p.clanName || ''} اخراج شدید` },
+  clan_promotion: { icon: notifIcon('star'), label: (p) => `نقش شما در کلن ${p.clanName || ''} ارتقا یافت` },
+  clan_ownership_transferred: { icon: notifIcon('crown'), label: () => 'مالکیت کلن به شما منتقل شد' },
+  direct_message: { icon: notifIcon('mail'), label: (p) => `پیام جدید: ${p.preview || ''}` },
 };
 
 let state = { items: [], unreadCount: 0, open: false, loaded: false };
 let initialized = false;
 
 function typeMeta(type) {
-  return TYPE_META[type] || { icon: '🔔', label: () => 'اعلان جدید' };
+  return TYPE_META[type] || { icon: notifIcon('bell'), label: () => 'اعلان جدید' };
 }
 
 function updateBadges() {
@@ -61,7 +76,7 @@ function routeFor(notification) {
 
 function panelTemplate() {
   if (!state.items.length) {
-    return `<div class="notif-empty"><span aria-hidden="true">🔔</span><p>اعلانی وجود ندارد</p></div>`;
+    return `<div class="notif-empty">${notifIcon('bell')}<p>اعلانی وجود ندارد</p></div>`;
   }
   return `
     <div class="notif-list">

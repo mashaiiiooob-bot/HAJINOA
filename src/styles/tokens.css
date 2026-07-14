@@ -20,8 +20,8 @@
   /* ---- Typography ---- */
   --font-fa: 'Vazirmatn', system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Vazirmatn', system-ui, sans-serif;
-  --fs-2xs: 0.6875rem;
-  --fs-xs: 0.75rem;
+  --fs-2xs: 0.75rem;
+  --fs-xs: 0.8125rem;
   --fs-sm: 0.875rem;
   --fs-base: 1rem;
   --fs-lg: 1.125rem;

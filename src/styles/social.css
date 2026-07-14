@@ -5,7 +5,7 @@
 /* ---- Icon button + badge (shared by header/sidebar bell) ---- */
 .icon-btn {
   position: relative;
-  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
   border-radius: var(--r-full); background: var(--c-surface); border: 1px solid var(--c-border);
   font-size: 1.1rem; color: var(--c-text);
   transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
@@ -37,6 +37,7 @@
 .notif-panel-header h3 { font-size: var(--fs-sm); }
 #notif-panel-body { overflow-y: auto; }
 .notif-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--sp-6) var(--sp-4); color: var(--c-text-faint); }
+.notif-empty .notif-type-icon { width: 32px; height: 32px; color: var(--c-text-faint); }
 .notif-list { display: flex; flex-direction: column; }
 .notif-item {
   display: flex; align-items: flex-start; gap: var(--sp-2); width: 100%; text-align: right;
@@ -45,7 +46,8 @@
 }
 .notif-item:hover { background: var(--c-surface); }
 .notif-item.unread { background: rgba(139,92,246,0.06); }
-.notif-icon { font-size: 1.1rem; }
+.notif-icon { font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+.notif-type-icon { width: 20px; height: 20px; color: var(--c-gold); flex-shrink: 0; }
 .notif-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .notif-text { font-size: var(--fs-sm); }
 .notif-time { font-size: var(--fs-2xs); color: var(--c-text-faint); }

@@ -27,6 +27,8 @@ const ICONS = {
   logo: '<path d="M7 14c0-3 1.5-6 5-6s5 3 5 6-1.5 5-5 5-5-2-5-5Z"/><path d="M9 9c.5-2 1.5-3 3-3s2.5 1 3 3"/>',
   collapse: '<path d="M15 5 8 12l7 7"/>',
   admin: '<path d="M12 3.5 5 6v5.5c0 4.2 3 7.3 7 9 4-1.7 7-4.8 7-9V6l-7-2.5Z"/><path d="M9.5 12l1.8 1.8 3.2-3.6"/>',
+  bell: '<path d="M6 9a6 6 0 0 1 12 0v5l1.6 2.5H4.4L6 14V9Z"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0"/>',
+  coin: '<circle cx="12" cy="12" r="8.5"/><path d="M9 12h6M12 9v6"/>',
 };
 
 function icon(name, extra = '') {
@@ -61,11 +63,11 @@ export function renderSidebar(user) {
 
     <div class="sidebar-footer">
       <button class="icon-btn js-notif-bell sidebar-notif-btn" aria-label="اعلان‌ها">
-        <span aria-hidden="true">🔔</span>
+        ${icon('bell')}
         <span class="notif-badge js-notif-badge hidden">0</span>
       </button>
       <div class="coin-pill" title="موجودی سکه">
-        <span class="coin-dot" aria-hidden="true">🪙</span>
+        ${icon('coin', 'coin-dot')}
         <span class="counter">${formatNumber(user?.coins)}</span>
       </div>
       <button class="sidebar-user" id="user-menu-btn" aria-haspopup="true" aria-label="منوی کاربر">
