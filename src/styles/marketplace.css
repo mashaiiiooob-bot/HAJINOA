@@ -25,7 +25,7 @@
 }
 .mp-search, .mp-select, .mp-price-input {
   background: var(--c-bg-elevated); border: 1px solid var(--c-border); border-radius: var(--r-md);
-  padding: 11px 14px; color: var(--c-text); font-size: var(--fs-sm);
+  padding: 12px 14px; color: var(--c-text); font-size: var(--fs-sm);
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
 .mp-search:focus, .mp-select:focus, .mp-price-input:focus {
