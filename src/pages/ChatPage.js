@@ -24,7 +24,7 @@ export async function renderChat(root) {
             <div class="widget-title"><h3>گفتگوی عمومی</h3></div>
             <div class="chat-messages chat-messages-lg" id="global-chat-messages">${renderList()}</div>
             <form class="chat-input-row" id="global-chat-form">
-              <input type="text" id="global-chat-input" class="mp-search" placeholder="پیام خود را بنویسید…" maxlength="500" autocomplete="off" />
+              <input type="text" id="global-chat-input" class="mp-search" placeholder="پیام خود را بنویسید…" aria-label="پیام گفتگوی عمومی" maxlength="500" autocomplete="off" />
               <button class="btn btn-primary btn-sm" type="submit">ارسال</button>
             </form>
           </section>

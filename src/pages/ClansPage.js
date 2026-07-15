@@ -142,7 +142,7 @@ export async function renderClans(root) {
         <div class="widget-title"><h3>گفتگوی کلن</h3></div>
         <div class="chat-messages" id="clan-chat-messages">${renderMessageList()}</div>
         <form class="chat-input-row" id="clan-chat-form">
-          <input type="text" id="clan-chat-input" class="mp-search" placeholder="پیام خود را بنویسید…" maxlength="500" autocomplete="off" />
+          <input type="text" id="clan-chat-input" class="mp-search" placeholder="پیام خود را بنویسید…" aria-label="پیام گفتگوی کلن" maxlength="500" autocomplete="off" />
           <button class="btn btn-primary btn-sm" type="submit">ارسال</button>
         </form>
       </section>
@@ -206,7 +206,7 @@ export async function renderClans(root) {
   function clanBrowseListTemplate() {
     return `
       <div class="mp-toolbar" style="grid-template-columns:1fr;">
-        <input class="mp-search" id="clan-search" type="search" placeholder="جستجوی نام یا تگ کلن…" value="${escapeHtml(search)}" />
+        <input class="mp-search" id="clan-search" type="search" placeholder="جستجوی نام یا تگ کلن…" aria-label="جستجوی کلن" value="${escapeHtml(search)}" />
       </div>
       ${
         browseResult.clans.length

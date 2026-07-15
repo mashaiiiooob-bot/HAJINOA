@@ -171,7 +171,7 @@ export async function renderFriends(root) {
   function searchTemplate() {
     return `
       <div class="mp-toolbar" style="grid-template-columns:1fr;">
-        <input class="mp-search" id="friend-search-input" type="search" placeholder="جستجوی نام کاربری…" value="${escapeHtml(searchTerm)}" />
+        <input class="mp-search" id="friend-search-input" type="search" placeholder="جستجوی نام کاربری…" aria-label="جستجوی نام کاربری دوستان" value="${escapeHtml(searchTerm)}" />
       </div>
       ${
         searchResults.length

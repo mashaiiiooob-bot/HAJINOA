@@ -385,7 +385,7 @@ export async function renderHokmTable(root, roomId) {
         <div class="widget-title"><h3>گفتگوی اتاق</h3></div>
         <div class="chat-messages" id="hokm-chat-messages">${renderChatList()}</div>
         <form class="chat-input-row" id="hokm-chat-form">
-          <input type="text" id="hokm-chat-input" class="mp-search" placeholder="پیام…" maxlength="300" autocomplete="off" />
+          <input type="text" id="hokm-chat-input" class="mp-search" placeholder="پیام…" aria-label="پیام گفتگوی اتاق حکم" maxlength="300" autocomplete="off" />
           <button class="btn btn-primary btn-sm" type="submit">ارسال</button>
         </form>
       </section>

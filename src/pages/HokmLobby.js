@@ -102,7 +102,7 @@ export async function renderHokmLobby(root) {
       <div class="card widget-card" style="margin-top:var(--sp-4)">
         <div class="widget-title"><h3>پیوستن با کد دعوت</h3></div>
         <form class="chat-input-row" id="join-code-form">
-          <input type="text" id="join-code-input" class="mp-search" placeholder="کد اتاق را وارد کنید…" maxlength="8" autocomplete="off" style="text-transform:uppercase" />
+          <input type="text" id="join-code-input" class="mp-search" placeholder="کد اتاق را وارد کنید…" aria-label="کد دعوت اتاق حکم" maxlength="8" autocomplete="off" style="text-transform:uppercase" />
           <button class="btn btn-primary btn-sm" type="submit">پیوستن</button>
         </form>
       </div>

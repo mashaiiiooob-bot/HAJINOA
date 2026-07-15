@@ -146,7 +146,7 @@ export async function renderMarketplace(root) {
   function toolbarTemplate() {
     return `
       <div class="mp-toolbar">
-        <input class="mp-search" id="mp-search" type="search" placeholder="جستجوی آیتم…" value="${escapeHtml(filters.search)}" />
+        <input class="mp-search" id="mp-search" type="search" placeholder="جستجوی آیتم…" aria-label="جستجوی آیتم در بازار" value="${escapeHtml(filters.search)}" />
         <select class="mp-select" id="mp-category">
           <option value="">همه دسته‌ها</option>
           ${Object.entries(CATEGORY_LABELS)
@@ -159,8 +159,8 @@ export async function renderMarketplace(root) {
             .map(([v, l]) => `<option value="${v}" ${filters.rarity === v ? 'selected' : ''}>${l}</option>`)
             .join('')}
         </select>
-        <input class="mp-price-input" id="mp-min-price" type="number" min="0" placeholder="حداقل قیمت" value="${escapeHtml(filters.minPrice)}" />
-        <input class="mp-price-input" id="mp-max-price" type="number" min="0" placeholder="حداکثر قیمت" value="${escapeHtml(filters.maxPrice)}" />
+        <input class="mp-price-input" id="mp-min-price" type="number" min="0" placeholder="حداقل قیمت" aria-label="حداقل قیمت" value="${escapeHtml(filters.minPrice)}" />
+        <input class="mp-price-input" id="mp-max-price" type="number" min="0" placeholder="حداکثر قیمت" aria-label="حداکثر قیمت" value="${escapeHtml(filters.maxPrice)}" />
         <select class="mp-select" id="mp-sort">
           <option value="newest" ${filters.sort === 'newest' ? 'selected' : ''}>جدیدترین</option>
           <option value="oldest" ${filters.sort === 'oldest' ? 'selected' : ''}>قدیمی‌ترین</option>

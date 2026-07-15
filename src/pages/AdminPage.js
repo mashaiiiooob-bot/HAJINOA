@@ -183,7 +183,7 @@ export async function renderAdmin(root) {
   function usersToolbarTemplate() {
     return `
       <div class="mp-toolbar" style="grid-template-columns:2fr 1fr 1fr 1fr;">
-        <input class="mp-search" id="admin-user-search" type="search" placeholder="جستجوی نام کاربری، ایمیل یا نام…" value="${escapeHtml(userFilters.search)}" />
+        <input class="mp-search" id="admin-user-search" type="search" placeholder="جستجوی نام کاربری، ایمیل یا نام…" aria-label="جستجوی کاربران" value="${escapeHtml(userFilters.search)}" />
         <select class="mp-select" id="admin-user-role">
           <option value="">همه نقش‌ها</option>
           ${Object.entries(ROLE_LABEL).map(([v, l]) => `<option value="${v}" ${userFilters.role === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -273,7 +273,7 @@ export async function renderAdmin(root) {
   function tournamentsToolbarTemplate() {
     return `
       <div class="mp-toolbar" style="grid-template-columns:2fr 1fr;">
-        <input class="mp-search" id="admin-t-search" type="search" placeholder="جستجوی نام مسابقه…" value="${escapeHtml(tFilters.search)}" />
+        <input class="mp-search" id="admin-t-search" type="search" placeholder="جستجوی نام مسابقه…" aria-label="جستجوی مسابقات" value="${escapeHtml(tFilters.search)}" />
         <select class="mp-select" id="admin-t-status">
           <option value="">همه وضعیت‌ها</option>
           <option value="registration" ${tFilters.status === 'registration' ? 'selected' : ''}>در انتظار</option>
@@ -476,7 +476,7 @@ export async function renderAdmin(root) {
   function marketplaceToolbarTemplate() {
     return `
       <div class="mp-toolbar" style="grid-template-columns:2fr 1fr;">
-        <input class="mp-search" id="admin-m-search" type="search" placeholder="جستجوی آیتم یا فروشنده…" value="${escapeHtml(mFilters.search)}" />
+        <input class="mp-search" id="admin-m-search" type="search" placeholder="جستجوی آیتم یا فروشنده…" aria-label="جستجوی آگهی‌های بازار" value="${escapeHtml(mFilters.search)}" />
         <select class="mp-select" id="admin-m-status">
           <option value="">همه وضعیت‌ها</option>
           ${Object.entries(M_STATUS_LABEL).map(([v, l]) => `<option value="${v}" ${mFilters.status === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -608,8 +608,8 @@ export async function renderAdmin(root) {
   }
 
   function clansTemplate() {
-    if (cLoading) return `<div class="mp-toolbar" style="grid-template-columns:1fr;"><input class="mp-search" id="admin-c-search" type="search" placeholder="جستجوی نام یا تگ کلن…" value="${escapeHtml(cFilters.search)}" /></div><div class="skeleton" style="height:340px;border-radius:var(--r-lg)"></div>`;
-    const toolbar = `<div class="mp-toolbar" style="grid-template-columns:1fr;"><input class="mp-search" id="admin-c-search" type="search" placeholder="جستجوی نام یا تگ کلن…" value="${escapeHtml(cFilters.search)}" /></div>`;
+    if (cLoading) return `<div class="mp-toolbar" style="grid-template-columns:1fr;"><input class="mp-search" id="admin-c-search" type="search" placeholder="جستجوی نام یا تگ کلن…" aria-label="جستجوی کلن‌ها" value="${escapeHtml(cFilters.search)}" /></div><div class="skeleton" style="height:340px;border-radius:var(--r-lg)"></div>`;
+    const toolbar = `<div class="mp-toolbar" style="grid-template-columns:1fr;"><input class="mp-search" id="admin-c-search" type="search" placeholder="جستجوی نام یا تگ کلن…" aria-label="جستجوی کلن‌ها" value="${escapeHtml(cFilters.search)}" /></div>`;
     if (!cResult.clans.length) return `${toolbar}<div class="empty-state"><span class="empty-icon" aria-hidden="true">🛡️</span><p>کلنی یافت نشد.</p></div>`;
     return `
       ${toolbar}
@@ -798,7 +798,7 @@ export async function renderAdmin(root) {
 
     const toolbar = `
       <div class="mp-toolbar" style="grid-template-columns:2fr 1fr;">
-        <input class="mp-search" id="admin-g-search" type="search" placeholder="جستجوی نام کاربری بازیکن…" value="${escapeHtml(gFilters.search)}" />
+        <input class="mp-search" id="admin-g-search" type="search" placeholder="جستجوی نام کاربری بازیکن…" aria-label="جستجوی بازیکنان" value="${escapeHtml(gFilters.search)}" />
         <select class="mp-select" id="admin-g-status">
           <option value="">همه وضعیت‌ها</option>
           ${Object.entries(G_STATUS_LABEL).map(([v, l]) => `<option value="${v}" ${gFilters.status === v ? 'selected' : ''}>${l}</option>`).join('')}

@@ -102,7 +102,7 @@
   /* ---- Text ---- */
   --c-text: #f2fbf9;
   --c-text-muted: #a9c9c4;
-  --c-text-faint: #648783;
+  --c-text-faint: #839f9b;
 
   /* ---- Semantic ---- */
   --c-success: #7ed957;
@@ -174,7 +174,7 @@
 
   --c-text: #fbf1f6;
   --c-text-muted: #c9a9bd;
-  --c-text-faint: #8a6b80;
+  --c-text-faint: #a38b9b;
 
   --c-success: #8fd96b;
   --c-success-glow: rgba(143, 217, 107, 0.24);
@@ -233,7 +233,7 @@
 
   --c-text: #f3fbe8;
   --c-text-muted: #b8cfa4;
-  --c-text-faint: #78916a;
+  --c-text-faint: #90a484;
 
   --c-success: #7ed957;
   --c-success-glow: rgba(126, 217, 87, 0.24);
@@ -298,7 +298,7 @@
   /* Text: dark-on-light now, inverted from every other (dark) theme */
   --c-text: #0f172a;
   --c-text-muted: #475569;
-  --c-text-faint: #94a3b8;
+  --c-text-faint: #677280;
 
   --c-success: #10b981;
   --c-success-glow: rgba(16, 185, 129, 0.18);
