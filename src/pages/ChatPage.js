@@ -9,6 +9,7 @@ import { escapeHtml, relativeTime } from '../utils/format.js';
 export async function renderChat(root) {
   let globalMessages = [];
   let channel = null;
+  let loading = true;
 
   function template() {
     return `
@@ -34,6 +35,7 @@ export async function renderChat(root) {
   }
 
   function renderList() {
+    if (loading) return `<div class="skeleton" style="height:340px;border-radius:var(--r-lg)"></div>`;
     if (!globalMessages.length) return `<p class="chat-empty">هنوز پیامی ارسال نشده است.</p>`;
     return globalMessages
       .map((m) => {
@@ -132,9 +134,11 @@ export async function renderChat(root) {
 
   try {
     await loadHistory();
-    renderMessages();
   } catch (err) {
     toast(err.message || 'خطا در بارگذاری گفتگو', 'error');
+  } finally {
+    loading = false;
+    renderMessages();
   }
 
   subscribeRealtime();

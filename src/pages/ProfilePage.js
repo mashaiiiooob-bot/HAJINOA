@@ -14,10 +14,30 @@ import { toast } from '../components/Toast.js';
  * utils/sampleData.js as a clearly marked placeholder.
  */
 export async function renderProfilePage(root) {
-  root.innerHTML = '<div class="container page-pad"><p class="hero-sub">در حال بارگذاری پروفایل...</p></div>';
+  root.innerHTML = `
+    <div class="container page-pad">
+      <div class="skeleton" style="height:180px;border-radius:var(--r-lg);margin-bottom:var(--sp-5)"></div>
+      <div class="skeleton" style="height:320px;border-radius:var(--r-lg)"></div>
+    </div>
+  `;
 
   const user = AuthStore.user;
-  const [stats, achievements] = await Promise.all([loadStats(user), loadAchievements(user)]);
+  let stats, achievements;
+  try {
+    [stats, achievements] = await Promise.all([loadStats(user), loadAchievements(user)]);
+  } catch (err) {
+    root.innerHTML = `
+      <div class="container page-pad">
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">⚠</span>
+          <p>${escapeHtml(err.message || 'خطا در بارگذاری پروفایل')}</p>
+          <button class="btn btn-secondary btn-sm" id="profile-retry">تلاش دوباره</button>
+        </div>
+      </div>
+    `;
+    root.querySelector('#profile-retry')?.addEventListener('click', () => renderProfilePage(root));
+    return;
+  }
   const matches = getMatchHistory();
 
   root.innerHTML = template(user, stats, matches, achievements);
